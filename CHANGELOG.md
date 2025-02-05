@@ -1,12 +1,12 @@
-## v1.0.13 (patch)
-
-Changes since v1.0.12-pre.1:
-
-- Add automation scripts for metadata generation and project management ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.0.12-pre.1 (patch)
 
 Changes since v1.0.11:
+
+- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
+
+## v1.0.10-pre.1 (patch)
+
+Changes since v1.0.9:
 
 - Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
 
