@@ -1,15 +1,3 @@
-## v1.0.12-pre.1 (patch)
-
-Changes since v1.0.11:
-
-- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
-
-## v1.0.10-pre.1 (patch)
-
-Changes since v1.0.9:
-
-- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.0.7 (patch)
 
 Changes since v1.0.6:
