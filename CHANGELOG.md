@@ -1,3 +1,13 @@
+## v1.1.0 (minor)
+
+Changes since v1.0.0:
+
+- [minor] Fix typo in make-license.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
+- Add automation scripts for metadata generation and project management ([@matt-edmondson](https://github.com/matt-edmondson))
+- Enhance fuzzy search library and add unit tests ([@matt-edmondson](https://github.com/matt-edmondson))
+- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
+- Replace LICENSE file with LICENSE.md and update copyright information ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.0.7 (patch)
 
 Changes since v1.0.6:
