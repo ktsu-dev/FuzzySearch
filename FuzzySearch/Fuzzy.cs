@@ -32,18 +32,16 @@ public static class Fuzzy
 	/// <summary>
 	/// Determines whether the specified subject contains all characters from the pattern in sequence.
 	/// </summary>
-	/// <param name="subject">The string to search within.</param>
+	/// <param name="subject">The span of characters to search within.</param>
 	/// <param name="pattern">The sequence of characters to search for.</param>
-	/// <returns><c>true</c> if the subject contains all characters from the pattern in sequence, or the pattern is empty and the subject is not; otherwise, <c>false</c>.</returns>
-	/// <exception cref="ArgumentNullException">Thrown when <paramref name="subject"/> or <paramref name="pattern"/> is <c>null</c>.</exception>
-	public static bool Contains(string subject, string pattern)
+	/// <returns>
+	/// <c>true</c> if the subject contains all characters from the pattern in sequence, or the pattern is empty and the subject is not; otherwise, <c>false</c>.
+	/// </returns>
+	public static bool Contains(ReadOnlySpan<char> subject, ReadOnlySpan<char> pattern)
 	{
-		ArgumentNullException.ThrowIfNull(subject);
-		ArgumentNullException.ThrowIfNull(pattern);
-
-		if (pattern.Length == 0)
+		if (pattern.IsEmpty)
 		{
-			return subject.Length != 0;
+			return !subject.IsEmpty;
 		}
 
 		int patternIdx = 0;
@@ -61,44 +59,42 @@ public static class Fuzzy
 			++strIdx;
 		}
 
-		return patternLength != 0 && strLength != 0 && patternIdx == patternLength;
+		return patternIdx == patternLength;
 	}
 
 	/// <summary>
 	/// Determines whether the specified subject contains all characters from the pattern in sequence, and calculates a match score.
 	/// </summary>
-	/// <param name="subject">The string to search within.</param>
+	/// <param name="subject">The span of characters to search within.</param>
 	/// <param name="pattern">The sequence of characters to search for.</param>
-	/// <param name="outScore">When this method returns, contains the calculated match score if the pattern is found; otherwise, the score reflects how close the match was.</param>
-	/// <returns><c>true</c> if the subject contains all characters from the pattern in sequence, or the pattern is empty and the subject is not; otherwise, <c>false</c>.</returns>
-	/// <exception cref="ArgumentNullException">Thrown when <paramref name="subject"/> or <paramref name="pattern"/> is <c>null</c>.</exception>
-	public static bool Contains(string subject, string pattern, out int outScore)
+	/// <param name="outScore">
+	/// When this method returns, contains the calculated match score if the pattern is found; otherwise, 
+	/// the score reflects how close the match was.
+	/// </param>
+	/// <returns>
+	/// <c>true</c> if the subject contains all characters from the pattern in sequence, or the pattern is empty and the subject is not; otherwise, <c>false</c>.
+	/// </returns>
+	public static bool Contains(ReadOnlySpan<char> subject, ReadOnlySpan<char> pattern, out int outScore)
 	{
-		ArgumentNullException.ThrowIfNull(subject);
-		ArgumentNullException.ThrowIfNull(pattern);
-
 		outScore = CalculateScore(subject, pattern, out bool wholePatternPresent);
-
 		return wholePatternPresent;
 	}
 
 	/// <summary>
-	/// Calculates a fuzzy match score between the subject string and pattern.
+	/// Calculates a fuzzy match score between the subject span and pattern span.
 	/// </summary>
-	/// <param name="subject">The string to search within.</param>
+	/// <param name="subject">The span of characters to search within.</param>
 	/// <param name="pattern">The sequence of characters to search for.</param>
-	/// <param name="wholePatternIsPresent">When this method returns, contains <c>true</c> if the entire pattern was found in the subject, or the pattern is empty and the subject is not; otherwise, <c>false</c>.</param>
+	/// <param name="wholePatternIsPresent">
+	/// When this method returns, contains <c>true</c> if the entire pattern was found in the subject, 
+	/// or the pattern is empty and the subject is not; otherwise, <c>false</c>.
+	/// </param>
 	/// <returns>A score representing the quality of the match. Higher scores indicate better matches.</returns>
-	internal static int CalculateScore(string subject, string pattern, out bool wholePatternIsPresent)
+	internal static int CalculateScore(ReadOnlySpan<char> subject, ReadOnlySpan<char> pattern, out bool wholePatternIsPresent)
 	{
-		if (pattern.Length == 0)
+		if (pattern.IsEmpty)
 		{
-			wholePatternIsPresent = true;
-			if (subject.Length == 0)
-			{
-				wholePatternIsPresent = false;
-			}
-
+			wholePatternIsPresent = !subject.IsEmpty;
 			return 0;
 		}
 
@@ -117,9 +113,9 @@ public static class Fuzzy
 		int? bestLetterIdx = null;
 		int bestLetterScore = 0;
 
-		var matchedIndices = new List<int>();
+		List<int> matchedIndices = [];
 
-		// Loop over characters
+		// Loop over characters in subject
 		while (strIdx != strLength)
 		{
 			char? patternChar = patternIdx != patternLength ? pattern[patternIdx] : null;
@@ -168,7 +164,7 @@ public static class Fuzzy
 					}
 
 					bestLetter = strChar;
-					bestLower = char.ToLowerInvariant((char)bestLetter);
+					bestLower = char.ToLowerInvariant(strChar);
 					bestLetterIdx = strIdx;
 					bestLetterScore = newScore;
 				}
@@ -198,7 +194,6 @@ public static class Fuzzy
 		}
 
 		wholePatternIsPresent = patternIdx == patternLength;
-
 		return score;
 	}
 
@@ -241,7 +236,7 @@ public static class Fuzzy
 	/// </summary>
 	/// <param name="score">The current score to apply penalties to.</param>
 	/// <param name="patternIdx">The current index in the pattern.</param>
-	/// <param name="strIdx">The current index in the subject string.</param>
+	/// <param name="strIdx">The current index in the subject span.</param>
 	/// <returns>The updated score after applying any applicable penalties.</returns>
 	internal static int PenalizeNonPatternCharacters(int score, int patternIdx, int strIdx)
 	{

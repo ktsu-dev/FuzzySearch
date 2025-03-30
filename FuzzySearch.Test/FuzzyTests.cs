@@ -117,28 +117,6 @@ public class FuzzyTests
 		Assert.IsFalse(result);
 	}
 
-	[TestMethod]
-	public void Contains_NullSubject_ThrowsArgumentNullException()
-	{
-		// Arrange
-		string? subject = null;
-		string pattern = "test";
-
-		// Act
-		Assert.ThrowsExactly<ArgumentNullException>(() => Fuzzy.Contains(subject!, pattern));
-	}
-
-	[TestMethod]
-	public void Contains_NullPattern_ThrowsArgumentNullException()
-	{
-		// Arrange
-		string subject = "test";
-		string? pattern = null;
-
-		// Act
-		Assert.ThrowsExactly<ArgumentNullException>(() => Fuzzy.Contains(subject, pattern!));
-	}
-
 	#endregion
 
 	#region Contains With Score Tests
@@ -234,28 +212,6 @@ public class FuzzyTests
 		Assert.IsTrue(result);
 		// The 'W' match should get a camelCase bonus
 		Assert.IsTrue(score >= Fuzzy.camelCaseMatchBonus, "Score should include camelCase bonus");
-	}
-
-	[TestMethod]
-	public void Contains_WithScore_NullSubject_ThrowsArgumentNullException()
-	{
-		// Arrange
-		string? subject = null;
-		string pattern = "test";
-
-		// Act
-		Assert.ThrowsExactly<ArgumentNullException>(() => Fuzzy.Contains(subject!, pattern, out _));
-	}
-
-	[TestMethod]
-	public void Contains_WithScore_NullPattern_ThrowsArgumentNullException()
-	{
-		// Arrange
-		string subject = "test";
-		string? pattern = null;
-
-		// Act
-		Assert.ThrowsExactly<ArgumentNullException>(() => Fuzzy.Contains(subject, pattern!, out _));
 	}
 
 	#endregion
