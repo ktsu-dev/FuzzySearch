@@ -1,23 +1,59 @@
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
 namespace ktsu.FuzzySearch;
 
+// Adapted from: https://gist.github.com/CDillinger/2aa02128f840bdca90340ce08ee71bc2
+
+/// <summary>
+/// Provides fuzzy string matching capabilities, allowing for approximate string matching and scoring.
+/// </summary>
+/// <remarks>
+/// This implementation uses a scoring system that rewards consecutive matches, matches after separator characters, 
+/// and matches across camelCase boundaries, while penalizing unmatched characters.
+/// </remarks>
 public static class Fuzzy
 {
-	// Adapted from: https://gist.github.com/CDillinger/2aa02128f840bdca90340ce08ee71bc2
-	public static bool Contains(string stringToSearch, string pattern)
+	/// <summary>The bonus score awarded for adjacent character matches.</summary>
+	internal const int adjacentMatchBonus = 5;
+
+	/// <summary>The bonus score awarded for matches that occur after a separator character ('_' or space).</summary>
+	internal const int matchAfterSeparatorBonus = 10;
+
+	/// <summary>The bonus score awarded for matches that occur at camelCase boundaries.</summary>
+	internal const int camelCaseMatchBonus = 10;
+
+	/// <summary>The penalty for each unmatched character at the beginning of the string.</summary>
+	internal const int unmatchedPrefixLetterPenalty = 0;
+
+	/// <summary>The maximum prefix penalty that can be applied.</summary>
+	internal const int maxPrefixPenalty = 0;
+
+	/// <summary>The penalty for each unmatched character in the string.</summary>
+	internal const int unmatchedLetterPenalty = -1;
+
+	/// <summary>
+	/// Determines whether the specified subject contains all characters from the pattern in sequence.
+	/// </summary>
+	/// <param name="subject">The string to search within.</param>
+	/// <param name="pattern">The sequence of characters to search for.</param>
+	/// <returns><c>true</c> if the subject contains all characters from the pattern in sequence, or the pattern is empty and the subject is not; otherwise, <c>false</c>.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="subject"/> or <paramref name="pattern"/> is <c>null</c>.</exception>
+	public static bool Contains(string subject, string pattern)
 	{
-		ArgumentNullException.ThrowIfNull(stringToSearch, nameof(stringToSearch));
-		ArgumentNullException.ThrowIfNull(pattern, nameof(pattern));
+		ArgumentNullException.ThrowIfNull(subject);
+		ArgumentNullException.ThrowIfNull(pattern);
+
+		if (pattern.Length == 0)
+		{
+			return subject.Length != 0;
+		}
 
 		int patternIdx = 0;
 		int strIdx = 0;
 		int patternLength = pattern.Length;
-		int strLength = stringToSearch.Length;
+		int strLength = subject.Length;
 
 		while (patternIdx != patternLength && strIdx != strLength)
 		{
-			if (char.ToLowerInvariant(pattern[patternIdx]) == char.ToLowerInvariant(stringToSearch[strIdx]))
+			if (char.ToLowerInvariant(pattern[patternIdx]) == char.ToLowerInvariant(subject[strIdx]))
 			{
 				++patternIdx;
 			}
@@ -28,30 +64,52 @@ public static class Fuzzy
 		return patternLength != 0 && strLength != 0 && patternIdx == patternLength;
 	}
 
-	// Adapted from: https://gist.github.com/CDillinger/2aa02128f840bdca90340ce08ee71bc2
-	public static bool Contains(string stringToSearch, string pattern, out int outScore)
+	/// <summary>
+	/// Determines whether the specified subject contains all characters from the pattern in sequence, and calculates a match score.
+	/// </summary>
+	/// <param name="subject">The string to search within.</param>
+	/// <param name="pattern">The sequence of characters to search for.</param>
+	/// <param name="outScore">When this method returns, contains the calculated match score if the pattern is found; otherwise, the score reflects how close the match was.</param>
+	/// <returns><c>true</c> if the subject contains all characters from the pattern in sequence, or the pattern is empty and the subject is not; otherwise, <c>false</c>.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="subject"/> or <paramref name="pattern"/> is <c>null</c>.</exception>
+	public static bool Contains(string subject, string pattern, out int outScore)
 	{
-		ArgumentNullException.ThrowIfNull(stringToSearch, nameof(stringToSearch));
-		ArgumentNullException.ThrowIfNull(pattern, nameof(pattern));
+		ArgumentNullException.ThrowIfNull(subject);
+		ArgumentNullException.ThrowIfNull(pattern);
 
-		// Score consts
-		const int adjacencyBonus = 5;               // bonus for adjacent matches
-		const int separatorBonus = 10;              // bonus if match occurs after a separator
-		const int camelBonus = 10;                  // bonus if match is uppercase and prev is lower
+		outScore = CalculateScore(subject, pattern, out bool wholePatternPresent);
 
-		const int leadingLetterPenalty = 0;         // penalty applied for every letter in stringToSearch before the first match
-		const int maxLeadingLetterPenalty = 0;      // maximum penalty for leading letters
-		const int unmatchedLetterPenalty = -1;      // penalty for every letter that doesn't matter
+		return wholePatternPresent;
+	}
 
-		// Loop variables
+	/// <summary>
+	/// Calculates a fuzzy match score between the subject string and pattern.
+	/// </summary>
+	/// <param name="subject">The string to search within.</param>
+	/// <param name="pattern">The sequence of characters to search for.</param>
+	/// <param name="wholePatternIsPresent">When this method returns, contains <c>true</c> if the entire pattern was found in the subject, or the pattern is empty and the subject is not; otherwise, <c>false</c>.</param>
+	/// <returns>A score representing the quality of the match. Higher scores indicate better matches.</returns>
+	internal static int CalculateScore(string subject, string pattern, out bool wholePatternIsPresent)
+	{
+		if (pattern.Length == 0)
+		{
+			wholePatternIsPresent = true;
+			if (subject.Length == 0)
+			{
+				wholePatternIsPresent = false;
+			}
+
+			return 0;
+		}
+
 		int score = 0;
 		int patternIdx = 0;
 		int patternLength = pattern.Length;
 		int strIdx = 0;
-		int strLength = stringToSearch.Length;
+		int strLength = subject.Length;
 		bool prevMatched = false;
 		bool prevLower = false;
-		bool prevSeparator = true;                   // true if first letter match gets separator bonus
+		bool prevSeparator = true; // true if first letter match gets separator bonus
 
 		// Use "best" matched letter if multiple string letters match the pattern
 		char? bestLetter = null;
@@ -61,11 +119,11 @@ public static class Fuzzy
 
 		var matchedIndices = new List<int>();
 
-		// Loop over strings
+		// Loop over characters
 		while (strIdx != strLength)
 		{
 			char? patternChar = patternIdx != patternLength ? pattern[patternIdx] : null;
-			char strChar = stringToSearch[strIdx];
+			char strChar = subject[strIdx];
 
 			char? patternLower = patternChar is not null ? char.ToLowerInvariant((char)patternChar) : null;
 			char strLower = char.ToLowerInvariant(strChar);
@@ -90,31 +148,9 @@ public static class Fuzzy
 			{
 				int newScore = 0;
 
-				// Apply penalty for each letter before the first pattern match
-				// Note: Math.Max because penalties are negative values. So max is smallest penalty.
-				if (patternIdx == 0)
-				{
-					int penalty = Math.Max(strIdx * leadingLetterPenalty, maxLeadingLetterPenalty);
-					score += penalty;
-				}
+				score = PenalizeNonPatternCharacters(score, patternIdx, strIdx);
 
-				// Apply bonus for consecutive bonuses
-				if (prevMatched)
-				{
-					newScore += adjacencyBonus;
-				}
-
-				// Apply bonus for matches after a separator
-				if (prevSeparator)
-				{
-					newScore += separatorBonus;
-				}
-
-				// Apply bonus across camel case boundaries. Includes "clever" isLetter check.
-				if (prevLower && strChar == strUpper && strLower != strUpper)
-				{
-					newScore += camelBonus;
-				}
+				newScore = ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, newScore);
 
 				// Update pattern index IF the next pattern letter was matched
 				if (nextMatch)
@@ -145,8 +181,10 @@ public static class Fuzzy
 				prevMatched = false;
 			}
 
-			// Includes "clever" isLetter check.
-			prevLower = strChar == strLower && strLower != strUpper;
+			// "clever" isLetter check.
+			bool isLetter = strLower != strUpper;
+
+			prevLower = strChar == strLower && isLetter;
 			prevSeparator = strChar is '_' or ' ';
 
 			++strIdx;
@@ -159,7 +197,62 @@ public static class Fuzzy
 			matchedIndices.Add((int)bestLetterIdx);
 		}
 
-		outScore = score;
-		return patternIdx == patternLength;
+		wholePatternIsPresent = patternIdx == patternLength;
+
+		return score;
+	}
+
+	/// <summary>
+	/// Applies bonus scores for various match characteristics.
+	/// </summary>
+	/// <param name="prevMatched">Whether the previous character was a match.</param>
+	/// <param name="prevLower">Whether the previous character was lowercase.</param>
+	/// <param name="prevSeparator">Whether the previous character was a separator.</param>
+	/// <param name="strChar">The current character being considered.</param>
+	/// <param name="strLower">The lowercase form of the current character.</param>
+	/// <param name="strUpper">The uppercase form of the current character.</param>
+	/// <param name="newScore">The current score to apply bonuses to.</param>
+	/// <returns>The updated score after applying any applicable bonuses.</returns>
+	internal static int ApplyBonuses(bool prevMatched, bool prevLower, bool prevSeparator, char strChar, char strLower, char strUpper, int newScore)
+	{
+		// Apply bonus for consecutive bonuses
+		if (prevMatched)
+		{
+			newScore += adjacentMatchBonus;
+		}
+
+		// Apply bonus for matches after a separator
+		if (prevSeparator)
+		{
+			newScore += matchAfterSeparatorBonus;
+		}
+
+		// Apply bonus across camel case boundaries. Includes "clever" isLetter check.
+		if (prevLower && strChar == strUpper && strLower != strUpper)
+		{
+			newScore += camelCaseMatchBonus;
+		}
+
+		return newScore;
+	}
+
+	/// <summary>
+	/// Applies penalties for characters that don't match the pattern.
+	/// </summary>
+	/// <param name="score">The current score to apply penalties to.</param>
+	/// <param name="patternIdx">The current index in the pattern.</param>
+	/// <param name="strIdx">The current index in the subject string.</param>
+	/// <returns>The updated score after applying any applicable penalties.</returns>
+	internal static int PenalizeNonPatternCharacters(int score, int patternIdx, int strIdx)
+	{
+		// Apply penalty for each letter before the first pattern match
+		// Note: Math.Max because penalties are negative values. So max is smallest penalty.
+		if (patternIdx == 0)
+		{
+			int penalty = Math.Max(strIdx * unmatchedPrefixLetterPenalty, maxPrefixPenalty);
+			score += penalty;
+		}
+
+		return score;
 	}
 }
