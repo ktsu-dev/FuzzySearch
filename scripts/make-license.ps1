@@ -13,7 +13,7 @@ $PROJECT_URL = "$github_server_url/$github_repository"
 $AUTHORS_URL = "$github_server_url/$github_repository_owner"
 
 $LICENSE = Get-Content -Path $PSScriptRoot/LICENSE.template -Raw
-$LICENSE = $LICENSE.Replace('{PROJECT_URL}', $PROJECT_URL))
+$LICENSE = $LICENSE.Replace('{PROJECT_URL}', $PROJECT_URL)
 $LICENSE = $LICENSE.Replace('{COPYRIGHT}', $COPYRIGHT)
 
 # output files
