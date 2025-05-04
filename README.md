@@ -1,28 +1,50 @@
 # ktsu.FuzzySearch
 
-A lightweight .NET library that provides fuzzy string matching capabilities, allowing for approximate string matching with intelligent scoring. It's perfect for implementing search-as-you-type features, command palettes, or any application requiring flexible string matching.
+> A lightweight .NET library that provides fuzzy string matching capabilities, allowing for approximate string matching with intelligent scoring.
 
 [![License](https://img.shields.io/github/license/ktsu-dev/FuzzySearch.svg?label=License&logo=nuget)](LICENSE.md)
-
 [![NuGet Version](https://img.shields.io/nuget/v/ktsu.FuzzySearch?label=Stable&logo=nuget)](https://nuget.org/packages/ktsu.FuzzySearch)
 [![NuGet Version](https://img.shields.io/nuget/vpre/ktsu.FuzzySearch?label=Latest&logo=nuget)](https://nuget.org/packages/ktsu.FuzzySearch)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/ktsu.FuzzySearch?label=Downloads&logo=nuget)](https://nuget.org/packages/ktsu.FuzzySearch)
-
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ktsu-dev/FuzzySearch?label=Commits&logo=github)](https://github.com/ktsu-dev/FuzzySearch/commits/main)
 [![GitHub contributors](https://img.shields.io/github/contributors/ktsu-dev/FuzzySearch?label=Contributors&logo=github)](https://github.com/ktsu-dev/FuzzySearch/graphs/contributors)
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/FuzzySearch/dotnet.yml?label=Build&logo=github)](https://github.com/ktsu-dev/FuzzySearch/actions)
 
+## Introduction
+
+FuzzySearch is a .NET library that provides fuzzy string matching capabilities with intelligent scoring. It's perfect for implementing search-as-you-type features, command palettes, or any application requiring flexible string matching. This library offers both basic contains-style matching and more sophisticated algorithms that can rank multiple potential matches by relevance.
+
+## Features
+
+- **Fuzzy String Matching**: Match strings even when they contain typos or missing characters
+- **Intelligent Scoring**: Rank matches by quality with a smart scoring algorithm
+- **Case Insensitivity**: Optional case-insensitive matching
+- **Filtering Collections**: Filter lists of strings and rank results
+- **Customizable Parameters**: Adjust matching behavior to suit different needs
+- **Lightweight**: Minimal dependencies, focused on performance
+- **Well-tested**: Comprehensive test suite ensuring reliability
+
 ## Installation
 
-To install FuzzySearch, you can use the .NET CLI:
+### Package Manager Console
+
+```powershell
+Install-Package ktsu.FuzzySearch
+```
+
+### .NET CLI
 
 ```bash
 dotnet add package ktsu.FuzzySearch
 ```
 
-Or you can use the NuGet Package Manager in Visual Studio to search for and install the `ktsu.FuzzySearch` package.
+### Package Reference
 
-## Usage
+```xml
+<PackageReference Include="ktsu.FuzzySearch" Version="x.y.z" />
+```
+
+## Usage Examples
 
 ### Basic Matching
 
@@ -30,11 +52,14 @@ The simplest way to check if a string contains characters from a pattern in sequ
 
 ```csharp
 using ktsu.FuzzySearch;
+
 class Program
 {
     static void Main()
     {
-        string text = "Hello World"; string pattern = "hlo";
+        string text = "Hello World";
+        string pattern = "hlo";
+        
         bool isMatch = Fuzzy.Contains(text, pattern); // Returns true
     }
 }
@@ -46,97 +71,182 @@ To get both a match result and a score that indicates the quality of the match:
 
 ```csharp
 using ktsu.FuzzySearch;
+
 class Program
 {
     static void Main()
     {
-        string text = "FuzzyStringMatcher";
-        string pattern = "fzm";
-        bool isMatch = Fuzzy.Contains(text, pattern, out int score);
-    
-        // isMatch will be true
-        // score will contain a value reflecting match quality, with positive values indicating a better match
-        Console.WriteLine($"Match found: {isMatch}, Score: {score}");
+        string text = "Hello World";
+        string pattern = "hlo";
+        
+        var result = Fuzzy.Match(text, pattern);
+        
+        Console.WriteLine($"Is match: {result.IsMatch}");          // True
+        Console.WriteLine($"Score: {result.Score}");               // A value between 0-1
+        Console.WriteLine($"Character indices: {result.Indices}"); // Indices of matched characters
     }
 }
 ```
 
-### Implementing Search Features
+### Filtering a Collection
 
-FuzzySearch is ideal for implementing searchable lists or command palettes:
+Filter a list of strings and sort them by match quality:
 
 ```csharp
 using ktsu.FuzzySearch;
-using System.Linq;
 
 class Program
 {
     static void Main()
     {
-        var items = new[]
+        var items = new List<string>
         {
-            "ApplicationSettings",
-            "UserPreferences",
-            "SecurityOptions",
-            "AccountManagement",
-            "SystemConfiguration"
+            "AppDataStorage",
+            "Application Settings",
+            "Data Store",
+            "File System",
+            "Storage Provider"
         };
-        string searchTerm = "set";
-    
-        // Find matches and order by score (best matches first)
-        var matches = items
-            .Select(item => new
-            {
-                Item = item,
-                IsMatch = Fuzzy.Contains(item, searchTerm, out int score),
-                Score = score
-            })
-            .Where(result => result.IsMatch)
-            .OrderByDescending(result => result.Score);
         
-        foreach (var match in matches)
+        string pattern = "appstor";
+        
+        // Filter and rank by match quality
+        var results = Fuzzy.Filter(items, pattern);
+        
+        foreach (var result in results)
         {
-            Console.WriteLine($"{match.Item}: {match.Score}");
+            Console.WriteLine($"{result.Item} (Score: {result.Score})");
         }
-
-        // Output will prioritize "ApplicationSettings" over other matches
+        
+        // Output might be:
+        // AppDataStorage (Score: 0.89)
+        // Application Settings (Score: 0.65)
+        // Storage Provider (Score: 0.52)
     }
 }
 ```
 
-## Scoring System
+### Advanced Options
 
-The library uses a scoring system that rewards:
+Customize the matching behavior with options:
 
-- **Consecutive character matches** - Characters that appear adjacent to each other in the pattern and subject receive a bonus
-- **Matches after separators** - Characters that appear after `_` or space characters receive a bonus
-- **CamelCase boundary matches** - Characters that appear at camelCase boundaries receive a bonus
+```csharp
+using ktsu.FuzzySearch;
 
-Meanwhile, penalties are applied for:
+class Program
+{
+    static void Main()
+    {
+        var options = new FuzzyOptions
+        {
+            CaseSensitive = true,              // Default is false
+            ScoreThreshold = 0.4,              // Minimum score to consider a match
+            BonusConsecutiveChars = 1.5,       // Bonus for consecutive matched characters
+            BonusStartOfWord = 2.0,            // Bonus for matches at word boundaries
+            PenaltyUnmatched = 0.1,            // Penalty for unmatched characters
+            MaxPatternLength = 64              // Maximum pattern length to consider
+        };
+        
+        string text = "FileSystemWatcher";
+        string pattern = "FSW";
+        
+        var result = Fuzzy.Match(text, pattern, options);
+        Console.WriteLine($"Score with custom options: {result.Score}");
+    }
+}
+```
 
-- **Unmatched characters** - Characters that are not found in the pattern receive a penalty
+### Object Collections
+
+Filter and match against object collections by providing a selector function:
+
+```csharp
+using ktsu.FuzzySearch;
+
+class Program
+{
+    class FileItem
+    {
+        public string Name { get; set; }
+        public string Path { get; set; }
+        public long Size { get; set; }
+    }
+    
+    static void Main()
+    {
+        var files = new List<FileItem>
+        {
+            new FileItem { Name = "Document.pdf", Path = "/documents/", Size = 1024 },
+            new FileItem { Name = "Presentation.pptx", Path = "/presentations/", Size = 2048 },
+            new FileItem { Name = "Spreadsheet.xlsx", Path = "/spreadsheets/", Size = 512 }
+        };
+        
+        string pattern = "doc";
+        
+        // Filter objects using a selector function
+        var results = Fuzzy.Filter(files, pattern, item => item.Name);
+        
+        foreach (var result in results)
+        {
+            Console.WriteLine($"{result.Item.Name} (Score: {result.Score})");
+        }
+    }
+}
+```
 
 ## API Reference
 
-### Fuzzy Class
+### `Fuzzy` Static Class
 
-- `bool Contains(string subject, string pattern)`: Determines if the subject string contains all characters from the pattern in sequence.
-- `bool Contains(string subject, string pattern, out int score)`: Determines if the subject contains all pattern characters and provides a match quality score.
+The main class providing fuzzy matching functionality.
 
-## Case Sensitivity
+#### Methods
 
-All matching operations are case-insensitive, making the library more forgiving and user-friendly for search scenarios.
+| Name | Parameters | Return Type | Description |
+|------|------------|-------------|-------------|
+| `Contains` | `string text, string pattern, bool caseSensitive = false` | `bool` | Checks if the text contains the pattern in sequence |
+| `Match` | `string text, string pattern, FuzzyOptions options = null` | `FuzzyResult` | Matches text against pattern with scoring |
+| `Filter` | `IEnumerable<string> items, string pattern, FuzzyOptions options = null` | `IEnumerable<FuzzyItem<string>>` | Filters and ranks a collection of strings |
+| `Filter<T>` | `IEnumerable<T> items, string pattern, Func<T, string> selector, FuzzyOptions options = null` | `IEnumerable<FuzzyItem<T>>` | Filters and ranks a collection of objects using a selector function |
 
-## License
+### `FuzzyResult` Class
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE.md) file for details.
+Represents the result of a fuzzy match operation.
+
+#### Properties
+
+| Name | Type | Description |
+|------|------|-------------|
+| `IsMatch` | `bool` | Indicates if the pattern matches the text |
+| `Score` | `double` | A value between 0 and 1 indicating match quality (1 is perfect) |
+| `Indices` | `int[]` | The indices in the text where pattern characters were matched |
+
+### `FuzzyOptions` Class
+
+Configuration options for fuzzy matching.
+
+#### Properties
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `CaseSensitive` | `bool` | `false` | Whether matching should be case-sensitive |
+| `ScoreThreshold` | `double` | `0.3` | Minimum score required to consider a match valid |
+| `BonusConsecutiveChars` | `double` | `1.0` | Score bonus for consecutive matched characters |
+| `BonusStartOfWord` | `double` | `1.5` | Score bonus for matches at word boundaries |
+| `PenaltyUnmatched` | `double` | `0.1` | Score reduction for unmatched characters |
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request for any improvements or bug fixes.
+Contributions are welcome! Here's how you can help:
 
-## Acknowledgements
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-Thanks to the .NET community and ktsu.dev contributors for their support.
+Please make sure to update tests as appropriate and adhere to the existing coding style.
 
-This library was adapted from the [implementation](https://gist.github.com/CDillinger/2aa02128f840bdca90340ce08ee71bc2) posted by [Collin Dillinger](https://github.com/CDillinger).
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
