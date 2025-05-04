@@ -1,3 +1,7 @@
+// Copyright (c) ktsu.dev
+// All rights reserved.
+// Licensed under the MIT license.
+
 namespace ktsu.FuzzySearch;
 
 // Adapted from: https://gist.github.com/CDillinger/2aa02128f840bdca90340ce08ee71bc2
@@ -44,10 +48,10 @@ public static class Fuzzy
 			return !subject.IsEmpty;
 		}
 
-		int patternIdx = 0;
-		int strIdx = 0;
-		int patternLength = pattern.Length;
-		int strLength = subject.Length;
+		var patternIdx = 0;
+		var strIdx = 0;
+		var patternLength = pattern.Length;
+		var strLength = subject.Length;
 
 		while (patternIdx != patternLength && strIdx != strLength)
 		{
@@ -76,7 +80,7 @@ public static class Fuzzy
 	/// </returns>
 	public static bool Contains(ReadOnlySpan<char> subject, ReadOnlySpan<char> pattern, out int outScore)
 	{
-		outScore = CalculateScore(subject, pattern, out bool wholePatternPresent);
+		outScore = CalculateScore(subject, pattern, out var wholePatternPresent);
 		return wholePatternPresent;
 	}
 
@@ -98,20 +102,20 @@ public static class Fuzzy
 			return 0;
 		}
 
-		int score = 0;
-		int patternIdx = 0;
-		int patternLength = pattern.Length;
-		int strIdx = 0;
-		int strLength = subject.Length;
-		bool prevMatched = false;
-		bool prevLower = false;
-		bool prevSeparator = true; // true if first letter match gets separator bonus
+		var score = 0;
+		var patternIdx = 0;
+		var patternLength = pattern.Length;
+		var strIdx = 0;
+		var strLength = subject.Length;
+		var prevMatched = false;
+		var prevLower = false;
+		var prevSeparator = true; // true if first letter match gets separator bonus
 
 		// Use "best" matched letter if multiple string letters match the pattern
 		char? bestLetter = null;
 		char? bestLower = null;
 		int? bestLetterIdx = null;
-		int bestLetterScore = 0;
+		var bestLetterScore = 0;
 
 		List<int> matchedIndices = [];
 
@@ -119,17 +123,17 @@ public static class Fuzzy
 		while (strIdx != strLength)
 		{
 			char? patternChar = patternIdx != patternLength ? pattern[patternIdx] : null;
-			char strChar = subject[strIdx];
+			var strChar = subject[strIdx];
 
 			char? patternLower = patternChar is not null ? char.ToLowerInvariant((char)patternChar) : null;
-			char strLower = char.ToLowerInvariant(strChar);
-			char strUpper = char.ToUpperInvariant(strChar);
+			var strLower = char.ToLowerInvariant(strChar);
+			var strUpper = char.ToUpperInvariant(strChar);
 
-			bool nextMatch = patternChar is not null && patternLower == strLower;
-			bool rematch = bestLetter is not null && bestLower == strLower;
+			var nextMatch = patternChar is not null && patternLower == strLower;
+			var rematch = bestLetter is not null && bestLower == strLower;
 
-			bool advanced = nextMatch && bestLetter is not null;
-			bool patternRepeat = bestLetter is not null && patternChar is not null && bestLower == patternLower;
+			var advanced = nextMatch && bestLetter is not null;
+			var patternRepeat = bestLetter is not null && patternChar is not null && bestLower == patternLower;
 			if (bestLetterIdx is not null && (advanced || patternRepeat))
 			{
 				score += bestLetterScore;
@@ -142,7 +146,7 @@ public static class Fuzzy
 
 			if (nextMatch || rematch)
 			{
-				int newScore = 0;
+				var newScore = 0;
 
 				score = PenalizeNonPatternCharacters(score, patternIdx, strIdx);
 
@@ -178,7 +182,7 @@ public static class Fuzzy
 			}
 
 			// "clever" isLetter check.
-			bool isLetter = strLower != strUpper;
+			var isLetter = strLower != strUpper;
 
 			prevLower = strChar == strLower && isLetter;
 			prevSeparator = strChar is '_' or ' ';
@@ -244,7 +248,7 @@ public static class Fuzzy
 		// Note: Math.Max because penalties are negative values. So max is smallest penalty.
 		if (patternIdx == 0)
 		{
-			int penalty = Math.Max(strIdx * unmatchedPrefixLetterPenalty, maxPrefixPenalty);
+			var penalty = Math.Max(strIdx * unmatchedPrefixLetterPenalty, maxPrefixPenalty);
 			score += penalty;
 		}
 
