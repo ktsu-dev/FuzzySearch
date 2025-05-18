@@ -1,6 +1,6 @@
 MIT License
 
-https://github.com/ktsu-dev/ktsu-dev/FuzzySearch
+https://github.com/ktsu-dev/FuzzySearch
 
 Copyright (c) 2023-2025 ktsu-dev
 
