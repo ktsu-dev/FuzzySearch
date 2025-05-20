@@ -23,6 +23,31 @@ Changes since v1.2.2-pre.15:
 - Update Directory.Build.targets ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Add github package support ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.2.2-pre.16 (prerelease)
+
+Changes since v1.2.2-pre.15:
+
+- Update README and project files for improved clarity and SDK versioning ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove obsolete build configuration files and scripts ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Replace LICENSE file with LICENSE.md and update copyright information ([@matt-edmondson](https://github.com/matt-edmondson))
+- Migrate ktsu.io to ktsu namespace ([@matt-edmondson](https://github.com/matt-edmondson))
+- Enhance fuzzy search library and add unit tests ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update nuget.config ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update build config ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update Directory.Build.targets ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update nuget.config ([@matt-edmondson](https://github.com/matt-edmondson))
+- Add automation scripts for metadata generation and project management ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor Fuzzy matching methods for performance ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update LICENSE ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update Directory.Build.props ([@matt-edmondson](https://github.com/matt-edmondson))
+- [minor] Fix typo in make-license.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
+- Initial commit ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update Directory.Build.targets ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Add github package support ([@matt-edmondson](https://github.com/matt-edmondson))
 ## v1.2.2-pre.15 (prerelease)
 
 Changes since v1.2.2-pre.14:
