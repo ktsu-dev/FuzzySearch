@@ -13,11 +13,11 @@ public class FuzzyTests
 	public void Contains_ExactMatch_ReturnsTrue()
 	{
 		// Arrange
-		var subject = "hello";
-		var pattern = "hello";
+		string subject = "hello";
+		string pattern = "hello";
 
 		// Act
-		var result = Fuzzy.Contains(subject, pattern);
+		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
 		Assert.IsTrue(result);
@@ -27,11 +27,11 @@ public class FuzzyTests
 	public void Contains_SubsequenceMatch_ReturnsTrue()
 	{
 		// Arrange
-		var subject = "hello world";
-		var pattern = "hlowrd";
+		string subject = "hello world";
+		string pattern = "hlowrd";
 
 		// Act
-		var result = Fuzzy.Contains(subject, pattern);
+		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
 		Assert.IsTrue(result);
@@ -41,11 +41,11 @@ public class FuzzyTests
 	public void Contains_CaseDifferenceMatch_ReturnsTrue()
 	{
 		// Arrange
-		var subject = "Hello World";
-		var pattern = "helloworld";
+		string subject = "Hello World";
+		string pattern = "helloworld";
 
 		// Act
-		var result = Fuzzy.Contains(subject, pattern);
+		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
 		Assert.IsTrue(result);
@@ -55,11 +55,11 @@ public class FuzzyTests
 	public void Contains_NoMatch_ReturnsFalse()
 	{
 		// Arrange
-		var subject = "hello";
-		var pattern = "world";
+		string subject = "hello";
+		string pattern = "world";
 
 		// Act
-		var result = Fuzzy.Contains(subject, pattern);
+		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
 		Assert.IsFalse(result);
@@ -69,11 +69,11 @@ public class FuzzyTests
 	public void Contains_PatternLongerThanSubject_ReturnsFalse()
 	{
 		// Arrange
-		var subject = "hi";
-		var pattern = "hello";
+		string subject = "hi";
+		string pattern = "hello";
 
 		// Act
-		var result = Fuzzy.Contains(subject, pattern);
+		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
 		Assert.IsFalse(result);
@@ -83,11 +83,11 @@ public class FuzzyTests
 	public void Contains_EmptyPattern_ReturnsTrue()
 	{
 		// Arrange
-		var subject = "hello";
-		var pattern = "";
+		string subject = "hello";
+		string pattern = "";
 
 		// Act
-		var result = Fuzzy.Contains(subject, pattern);
+		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
 		Assert.IsTrue(result);
@@ -97,11 +97,11 @@ public class FuzzyTests
 	public void Contains_EmptySubject_ReturnsFalse()
 	{
 		// Arrange
-		var subject = "";
-		var pattern = "hello";
+		string subject = "";
+		string pattern = "hello";
 
 		// Act
-		var result = Fuzzy.Contains(subject, pattern);
+		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
 		Assert.IsFalse(result);
@@ -111,11 +111,11 @@ public class FuzzyTests
 	public void Contains_BothEmpty_ReturnsFalse()
 	{
 		// Arrange
-		var subject = "";
-		var pattern = "";
+		string subject = "";
+		string pattern = "";
 
 		// Act
-		var result = Fuzzy.Contains(subject, pattern);
+		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
 		Assert.IsFalse(result);
@@ -129,11 +129,11 @@ public class FuzzyTests
 	public void Contains_WithScore_ExactMatch_ReturnsTrueWithHighScore()
 	{
 		// Arrange
-		var subject = "hello";
-		var pattern = "hello";
+		string subject = "hello";
+		string pattern = "hello";
 
 		// Act
-		var result = Fuzzy.Contains(subject, pattern, out var score);
+		bool result = Fuzzy.Contains(subject, pattern, out int score);
 
 		// Assert
 		Assert.IsTrue(result);
@@ -144,11 +144,11 @@ public class FuzzyTests
 	public void Contains_WithScore_SubsequenceMatch_ReturnsTrueWithPositiveScore()
 	{
 		// Arrange
-		var subject = "hello world";
-		var pattern = "hlowrd";
+		string subject = "hello world";
+		string pattern = "hlowrd";
 
 		// Act
-		var result = Fuzzy.Contains(subject, pattern, out var score);
+		bool result = Fuzzy.Contains(subject, pattern, out int score);
 
 		// Assert
 		Assert.IsTrue(result);
@@ -159,11 +159,11 @@ public class FuzzyTests
 	public void Contains_WithScore_NoMatch_ReturnsFalseWithLowerScore()
 	{
 		// Arrange
-		var subject = "hello";
-		var pattern = "world";
+		string subject = "hello";
+		string pattern = "world";
 
 		// Act
-		var result = Fuzzy.Contains(subject, pattern, out _);
+		bool result = Fuzzy.Contains(subject, pattern, out _);
 
 		// Assert
 		Assert.IsFalse(result);
@@ -174,13 +174,13 @@ public class FuzzyTests
 	public void Contains_WithScore_AdjacentMatches_ScoresHigherThanNonAdjacentMatches()
 	{
 		// Arrange
-		var subject1 = "hworld"; // adjacent matches for "hw"
-		var subject2 = "hiworld";   // non-adjacent matches for "hw"
-		var pattern = "hw";
+		string subject1 = "hworld"; // adjacent matches for "hw"
+		string subject2 = "hiworld";   // non-adjacent matches for "hw"
+		string pattern = "hw";
 
 		// Act
-		Fuzzy.Contains(subject1, pattern, out var score1);
-		Fuzzy.Contains(subject2, pattern, out var score2);
+		Fuzzy.Contains(subject1, pattern, out int score1);
+		Fuzzy.Contains(subject2, pattern, out int score2);
 
 		// Assert
 		Assert.IsTrue(score1 > score2, "Adjacent matches should score higher");
@@ -190,11 +190,11 @@ public class FuzzyTests
 	public void Contains_WithScore_MatchAfterSeparator_GetsBonus()
 	{
 		// Arrange
-		var subject = "hello_world";  // 'w' is after separator '_'
-		var pattern = "hw";
+		string subject = "hello_world";  // 'w' is after separator '_'
+		string pattern = "hw";
 
 		// Act
-		var result = Fuzzy.Contains(subject, pattern, out var score);
+		bool result = Fuzzy.Contains(subject, pattern, out int score);
 
 		// Assert
 		Assert.IsTrue(result);
@@ -206,11 +206,11 @@ public class FuzzyTests
 	public void Contains_WithScore_CamelCaseMatch_GetsBonus()
 	{
 		// Arrange
-		var subject = "helloWorld";  // 'W' is at camelCase boundary
-		var pattern = "hW";
+		string subject = "helloWorld";  // 'W' is at camelCase boundary
+		string pattern = "hW";
 
 		// Act
-		var result = Fuzzy.Contains(subject, pattern, out var score);
+		bool result = Fuzzy.Contains(subject, pattern, out int score);
 
 		// Assert
 		Assert.IsTrue(result);
@@ -226,16 +226,16 @@ public class FuzzyTests
 	public void ApplyBonuses_PrevMatched_AddsAdjacentMatchBonus()
 	{
 		// Arrange
-		var prevMatched = true;
-		var prevLower = false;
-		var prevSeparator = false;
-		var strChar = 'a';
-		var strLower = 'a';
-		var strUpper = 'A';
-		var initialScore = 0;
+		bool prevMatched = true;
+		bool prevLower = false;
+		bool prevSeparator = false;
+		char strChar = 'a';
+		char strLower = 'a';
+		char strUpper = 'A';
+		int initialScore = 0;
 
 		// Act
-		var result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
+		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
 
 		// Assert
 		Assert.AreEqual(Fuzzy.adjacentMatchBonus, result);
@@ -245,16 +245,16 @@ public class FuzzyTests
 	public void ApplyBonuses_PrevSeparator_AddsMatchAfterSeparatorBonus()
 	{
 		// Arrange
-		var prevMatched = false;
-		var prevLower = false;
-		var prevSeparator = true;
-		var strChar = 'a';
-		var strLower = 'a';
-		var strUpper = 'A';
-		var initialScore = 0;
+		bool prevMatched = false;
+		bool prevLower = false;
+		bool prevSeparator = true;
+		char strChar = 'a';
+		char strLower = 'a';
+		char strUpper = 'A';
+		int initialScore = 0;
 
 		// Act
-		var result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
+		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
 
 		// Assert
 		Assert.AreEqual(Fuzzy.matchAfterSeparatorBonus, result);
@@ -264,16 +264,16 @@ public class FuzzyTests
 	public void ApplyBonuses_CamelCaseBoundary_AddsCamelCaseMatchBonus()
 	{
 		// Arrange
-		var prevMatched = false;
-		var prevLower = true;
-		var prevSeparator = false;
-		var strChar = 'A';  // Capital letter
-		var strLower = 'a';
-		var strUpper = 'A';
-		var initialScore = 0;
+		bool prevMatched = false;
+		bool prevLower = true;
+		bool prevSeparator = false;
+		char strChar = 'A';  // Capital letter
+		char strLower = 'a';
+		char strUpper = 'A';
+		int initialScore = 0;
 
 		// Act
-		var result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
+		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
 
 		// Assert
 		Assert.AreEqual(Fuzzy.camelCaseMatchBonus, result);
@@ -283,17 +283,17 @@ public class FuzzyTests
 	public void ApplyBonuses_AllBonusesApply_AddsAllBonuses()
 	{
 		// Arrange
-		var prevMatched = true;
-		var prevLower = true;
-		var prevSeparator = true;
-		var strChar = 'A';  // Capital letter
-		var strLower = 'a';
-		var strUpper = 'A';
-		var initialScore = 0;
-		var expectedBonus = Fuzzy.adjacentMatchBonus + Fuzzy.matchAfterSeparatorBonus + Fuzzy.camelCaseMatchBonus;
+		bool prevMatched = true;
+		bool prevLower = true;
+		bool prevSeparator = true;
+		char strChar = 'A';  // Capital letter
+		char strLower = 'a';
+		char strUpper = 'A';
+		int initialScore = 0;
+		int expectedBonus = Fuzzy.adjacentMatchBonus + Fuzzy.matchAfterSeparatorBonus + Fuzzy.camelCaseMatchBonus;
 
 		// Act
-		var result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
+		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
 
 		// Assert
 		Assert.AreEqual(expectedBonus, result);
@@ -303,16 +303,16 @@ public class FuzzyTests
 	public void ApplyBonuses_NoBonusesApply_ScoreUnchanged()
 	{
 		// Arrange
-		var prevMatched = false;
-		var prevLower = false;
-		var prevSeparator = false;
-		var strChar = 'a';
-		var strLower = 'a';
-		var strUpper = 'A';
-		var initialScore = 5;
+		bool prevMatched = false;
+		bool prevLower = false;
+		bool prevSeparator = false;
+		char strChar = 'a';
+		char strLower = 'a';
+		char strUpper = 'A';
+		int initialScore = 5;
 
 		// Act
-		var result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
+		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
 
 		// Assert
 		Assert.AreEqual(initialScore, result);
@@ -326,13 +326,13 @@ public class FuzzyTests
 	public void PenalizeNonPatternCharacters_FirstPatternChar_AppliesPrefixPenalty()
 	{
 		// Arrange
-		var initialScore = 10;
-		var patternIdx = 0;
-		var strIdx = 3;  // 3 chars before first match
-		var expectedPenalty = Math.Max(strIdx * Fuzzy.unmatchedPrefixLetterPenalty, Fuzzy.maxPrefixPenalty);
+		int initialScore = 10;
+		int patternIdx = 0;
+		int strIdx = 3;  // 3 chars before first match
+		int expectedPenalty = Math.Max(strIdx * Fuzzy.unmatchedPrefixLetterPenalty, Fuzzy.maxPrefixPenalty);
 
 		// Act
-		var result = Fuzzy.PenalizeNonPatternCharacters(initialScore, patternIdx, strIdx);
+		int result = Fuzzy.PenalizeNonPatternCharacters(initialScore, patternIdx, strIdx);
 
 		// Assert
 		Assert.AreEqual(initialScore + expectedPenalty, result);
@@ -342,12 +342,12 @@ public class FuzzyTests
 	public void PenalizeNonPatternCharacters_NotFirstPatternChar_NoChange()
 	{
 		// Arrange
-		var initialScore = 10;
-		var patternIdx = 1;  // Not the first pattern character
-		var strIdx = 3;
+		int initialScore = 10;
+		int patternIdx = 1;  // Not the first pattern character
+		int strIdx = 3;
 
 		// Act
-		var result = Fuzzy.PenalizeNonPatternCharacters(initialScore, patternIdx, strIdx);
+		int result = Fuzzy.PenalizeNonPatternCharacters(initialScore, patternIdx, strIdx);
 
 		// Assert
 		Assert.AreEqual(initialScore, result);
@@ -361,11 +361,11 @@ public class FuzzyTests
 	public void CalculateScore_ExactMatch_HighScoreAndPatternPresent()
 	{
 		// Arrange
-		var subject = "test";
-		var pattern = "test";
+		string subject = "test";
+		string pattern = "test";
 
 		// Act
-		var score = Fuzzy.CalculateScore(subject, pattern, out var patternPresent);
+		int score = Fuzzy.CalculateScore(subject, pattern, out bool patternPresent);
 
 		// Assert
 		Assert.IsTrue(patternPresent);
@@ -376,11 +376,11 @@ public class FuzzyTests
 	public void CalculateScore_NoMatch_LowScoreAndPatternNotPresent()
 	{
 		// Arrange
-		var subject = "test";
-		var pattern = "xyz";
+		string subject = "test";
+		string pattern = "xyz";
 
 		// Act
-		var score = Fuzzy.CalculateScore(subject, pattern, out var patternPresent);
+		int score = Fuzzy.CalculateScore(subject, pattern, out bool patternPresent);
 
 		// Assert
 		Assert.IsFalse(patternPresent);
@@ -391,12 +391,12 @@ public class FuzzyTests
 	public void CalculateScore_PartialMatch_IntermediateScoreAndPatternNotPresent()
 	{
 		// Arrange
-		var subject = "testing";
-		var pattern = "txs";  // t and s match but x doesn't
+		string subject = "testing";
+		string pattern = "txs";  // t and s match but x doesn't
 
 		// Act
 
-		_ = Fuzzy.CalculateScore(subject, pattern, out var patternPresent);
+		_ = Fuzzy.CalculateScore(subject, pattern, out bool patternPresent);
 
 		// Assert
 		Assert.IsFalse(patternPresent);
@@ -406,11 +406,11 @@ public class FuzzyTests
 	public void CalculateScore_EmptyPattern_ZeroScoreAndPatternPresent()
 	{
 		// Arrange
-		var subject = "test";
-		var pattern = "";
+		string subject = "test";
+		string pattern = "";
 
 		// Act
-		var score = Fuzzy.CalculateScore(subject, pattern, out var patternPresent);
+		int score = Fuzzy.CalculateScore(subject, pattern, out bool patternPresent);
 
 		// Assert
 		Assert.IsTrue(patternPresent);  // Empty pattern is always "present"
@@ -434,17 +434,17 @@ public class FuzzyTests
 			"FastSorterModule"
 		];
 
-		var pattern = "fsm";
+		string pattern = "fsm";
 		Dictionary<string, int> scores = [];
 
-		foreach (var subject in subjects)
+		foreach (string subject in subjects)
 		{
-			Fuzzy.Contains(subject, pattern, out var score);
+			Fuzzy.Contains(subject, pattern, out int score);
 			scores[subject] = score;
 		}
 
 		// "FileSystemManager" should be the best match for "fsm"
-		var bestMatch = scores.OrderByDescending(s => s.Value).First().Key;
+		string bestMatch = scores.OrderByDescending(s => s.Value).First().Key;
 		Assert.AreEqual("FileSystemManager", bestMatch);
 	}
 
@@ -452,16 +452,16 @@ public class FuzzyTests
 	public void IntegrationTest_ScoresReflectMatchQuality()
 	{
 		// Test that match quality is reflected in scores
-		var pattern = "sts";
+		string pattern = "sts";
 
 		// Exact consecutive matches
-		Fuzzy.Contains("tests", pattern, out var exactScore);
+		Fuzzy.Contains("tests", pattern, out int exactScore);
 
 		// Separated matches
-		Fuzzy.Contains("solutions to systems", pattern, out var separatedScore);
+		Fuzzy.Contains("solutions to systems", pattern, out int separatedScore);
 
 		// Mixed case with camelCase boundaries
-		Fuzzy.Contains("shortToString", pattern, out var camelCaseScore);
+		Fuzzy.Contains("shortToString", pattern, out int camelCaseScore);
 
 		// Assert that exact consecutive matches score higher
 		Assert.IsTrue(exactScore > separatedScore);

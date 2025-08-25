@@ -10,7 +10,7 @@ namespace ktsu.FuzzySearch;
 /// Provides fuzzy string matching capabilities, allowing for approximate string matching and scoring.
 /// </summary>
 /// <remarks>
-/// This implementation uses a scoring system that rewards consecutive matches, matches after separator characters, 
+/// This implementation uses a scoring system that rewards consecutive matches, matches after separator characters,
 /// and matches across camelCase boundaries, while penalizing unmatched characters.
 /// </remarks>
 public static class Fuzzy
@@ -48,10 +48,10 @@ public static class Fuzzy
 			return !subject.IsEmpty;
 		}
 
-		var patternIdx = 0;
-		var strIdx = 0;
-		var patternLength = pattern.Length;
-		var strLength = subject.Length;
+		int patternIdx = 0;
+		int strIdx = 0;
+		int patternLength = pattern.Length;
+		int strLength = subject.Length;
 
 		while (patternIdx != patternLength && strIdx != strLength)
 		{
@@ -72,7 +72,7 @@ public static class Fuzzy
 	/// <param name="subject">The span of characters to search within.</param>
 	/// <param name="pattern">The sequence of characters to search for.</param>
 	/// <param name="outScore">
-	/// When this method returns, contains the calculated match score if the pattern is found; otherwise, 
+	/// When this method returns, contains the calculated match score if the pattern is found; otherwise,
 	/// the score reflects how close the match was.
 	/// </param>
 	/// <returns>
@@ -80,7 +80,7 @@ public static class Fuzzy
 	/// </returns>
 	public static bool Contains(ReadOnlySpan<char> subject, ReadOnlySpan<char> pattern, out int outScore)
 	{
-		outScore = CalculateScore(subject, pattern, out var wholePatternPresent);
+		outScore = CalculateScore(subject, pattern, out bool wholePatternPresent);
 		return wholePatternPresent;
 	}
 
@@ -90,7 +90,7 @@ public static class Fuzzy
 	/// <param name="subject">The span of characters to search within.</param>
 	/// <param name="pattern">The sequence of characters to search for.</param>
 	/// <param name="wholePatternIsPresent">
-	/// When this method returns, contains <c>true</c> if the entire pattern was found in the subject, 
+	/// When this method returns, contains <c>true</c> if the entire pattern was found in the subject,
 	/// or the pattern is empty and the subject is not; otherwise, <c>false</c>.
 	/// </param>
 	/// <returns>A score representing the quality of the match. Higher scores indicate better matches.</returns>
@@ -102,20 +102,20 @@ public static class Fuzzy
 			return 0;
 		}
 
-		var score = 0;
-		var patternIdx = 0;
-		var patternLength = pattern.Length;
-		var strIdx = 0;
-		var strLength = subject.Length;
-		var prevMatched = false;
-		var prevLower = false;
-		var prevSeparator = true; // true if first letter match gets separator bonus
+		int score = 0;
+		int patternIdx = 0;
+		int patternLength = pattern.Length;
+		int strIdx = 0;
+		int strLength = subject.Length;
+		bool prevMatched = false;
+		bool prevLower = false;
+		bool prevSeparator = true; // true if first letter match gets separator bonus
 
 		// Use "best" matched letter if multiple string letters match the pattern
 		char? bestLetter = null;
 		char? bestLower = null;
 		int? bestLetterIdx = null;
-		var bestLetterScore = 0;
+		int bestLetterScore = 0;
 
 		List<int> matchedIndices = [];
 
@@ -123,17 +123,17 @@ public static class Fuzzy
 		while (strIdx != strLength)
 		{
 			char? patternChar = patternIdx != patternLength ? pattern[patternIdx] : null;
-			var strChar = subject[strIdx];
+			char strChar = subject[strIdx];
 
 			char? patternLower = patternChar is not null ? char.ToLowerInvariant((char)patternChar) : null;
-			var strLower = char.ToLowerInvariant(strChar);
-			var strUpper = char.ToUpperInvariant(strChar);
+			char strLower = char.ToLowerInvariant(strChar);
+			char strUpper = char.ToUpperInvariant(strChar);
 
-			var nextMatch = patternChar is not null && patternLower == strLower;
-			var rematch = bestLetter is not null && bestLower == strLower;
+			bool nextMatch = patternChar is not null && patternLower == strLower;
+			bool rematch = bestLetter is not null && bestLower == strLower;
 
-			var advanced = nextMatch && bestLetter is not null;
-			var patternRepeat = bestLetter is not null && patternChar is not null && bestLower == patternLower;
+			bool advanced = nextMatch && bestLetter is not null;
+			bool patternRepeat = bestLetter is not null && patternChar is not null && bestLower == patternLower;
 			if (bestLetterIdx is not null && (advanced || patternRepeat))
 			{
 				score += bestLetterScore;
@@ -146,7 +146,7 @@ public static class Fuzzy
 
 			if (nextMatch || rematch)
 			{
-				var newScore = 0;
+				int newScore = 0;
 
 				score = PenalizeNonPatternCharacters(score, patternIdx, strIdx);
 
@@ -182,7 +182,7 @@ public static class Fuzzy
 			}
 
 			// "clever" isLetter check.
-			var isLetter = strLower != strUpper;
+			bool isLetter = strLower != strUpper;
 
 			prevLower = strChar == strLower && isLetter;
 			prevSeparator = strChar is '_' or ' ';
@@ -248,7 +248,7 @@ public static class Fuzzy
 		// Note: Math.Max because penalties are negative values. So max is smallest penalty.
 		if (patternIdx == 0)
 		{
-			var penalty = Math.Max(strIdx * unmatchedPrefixLetterPenalty, maxPrefixPenalty);
+			int penalty = Math.Max(strIdx * unmatchedPrefixLetterPenalty, maxPrefixPenalty);
 			score += penalty;
 		}
 
