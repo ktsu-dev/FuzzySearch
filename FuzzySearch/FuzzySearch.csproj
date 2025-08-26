@@ -1,8 +1,4 @@
 <Project>
   <Sdk Name="Microsoft.NET.Sdk" />
   <Sdk Name="ktsu.Sdk" />
-
-  <ItemGroup>
-    <PackageReference Include="System.Memory" />
-  </ItemGroup>
 </Project>
