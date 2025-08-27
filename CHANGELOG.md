@@ -1,5 +1,8 @@
 ## v1.2.3-pre.1 (prerelease)
 
+Incremental prerelease update.
+## v1.2.3-pre.1 (prerelease)
+
 Changes since v1.2.2:
 ## v1.2.2 (patch)
 
