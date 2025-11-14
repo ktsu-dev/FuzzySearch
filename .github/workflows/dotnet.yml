@@ -137,13 +137,21 @@ jobs:
               throw $result.Error
           }
 
-          # Set outputs for GitHub Actions from build configuration
-          "version=$($buildConfig.Data.Version)" >> $env:GITHUB_OUTPUT
-          "release_hash=$($buildConfig.Data.ReleaseHash)" >> $env:GITHUB_OUTPUT
-          "should_release=$($buildConfig.Data.ShouldRelease)" >> $env:GITHUB_OUTPUT
-
-          if ($buildConfig.Data.SkippedRelease) {
+          # Set outputs for GitHub Actions from build configuration and pipeline result
+          # Use pipeline result values when available (for skipped releases), otherwise use buildConfig
+          if ($result.Data.SkippedRelease) {
+            "version=$($result.Data.Version)" >> $env:GITHUB_OUTPUT
+            "release_hash=$($result.Data.ReleaseHash)" >> $env:GITHUB_OUTPUT
+            "should_release=$($buildConfig.Data.ShouldRelease)" >> $env:GITHUB_OUTPUT
             "skipped_release=true" >> $env:GITHUB_OUTPUT
+          } else {
+            "version=$($buildConfig.Data.Version)" >> $env:GITHUB_OUTPUT
+            "release_hash=$($buildConfig.Data.ReleaseHash)" >> $env:GITHUB_OUTPUT
+            "should_release=$($buildConfig.Data.ShouldRelease)" >> $env:GITHUB_OUTPUT
+            # Check for skipped release from buildConfig as fallback
+            if ($buildConfig.Data.SkippedRelease) {
+              "skipped_release=true" >> $env:GITHUB_OUTPUT
+            }
           }
 
       - name: End SonarQube

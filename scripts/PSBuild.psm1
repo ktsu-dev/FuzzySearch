@@ -1470,11 +1470,11 @@ function Invoke-DotNetTest {
     New-Item -Path $testResultsPath -ItemType Directory -Force | Out-Null
 
     # Run tests with both coverage collection and TRX logging for SonarQube
-    "dotnet test --configuration $Configuration --collect:`"Code Coverage;Format=opencover`" --results-directory `"$testResultsPath`" --logger `"trx;LogFileName=TestResults.trx`"" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-DotNetTest"
+    "dotnet test --configuration $Configuration /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=`"coverage.opencover.xml`" --results-directory `"$testResultsPath`" --logger `"trx;LogFileName=TestResults.trx`"" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-DotNetTest"
     Assert-LastExitCode "Tests failed"
 
     # Find and copy coverage file to expected location for SonarQube
-    $coverageFiles = @(Get-ChildItem -Path $testResultsPath -Recurse -Filter "*.xml" -ErrorAction SilentlyContinue | Where-Object { $_.Name -match "coverage" })
+    $coverageFiles = @(Get-ChildItem -Path . -Recurse -Filter "coverage.opencover.xml" -ErrorAction SilentlyContinue)
     if ($coverageFiles.Count -gt 0) {
         $latestCoverageFile = $coverageFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1
         $targetCoverageFile = Join-Path $CoverageOutputPath "coverage.opencover.xml"
