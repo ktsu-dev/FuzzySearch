@@ -1,3 +1,6 @@
+## v1.2.4
+
+No significant changes detected since v1.2.4.
 ## v1.2.4 (patch)
 
 Changes since v1.2.3:
@@ -16,10 +19,7 @@ Changes since v1.2.4-pre.1:
 - Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
 ## v1.2.4-pre.1 (prerelease)
 
-Changes since v1.2.3:
-
-- Sync scripts\PSBuild.psm1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
-- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+Incremental prerelease update.
 ## v1.2.3 (patch)
 
 Changes since v1.2.2:
