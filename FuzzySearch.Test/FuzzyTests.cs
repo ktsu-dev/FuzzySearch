@@ -2,6 +2,8 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
+[assembly: Parallelize(Scope = ExecutionScope.MethodLevel)]
+
 namespace ktsu.FuzzySearch.Tests;
 
 [TestClass]
@@ -20,7 +22,7 @@ public class FuzzyTests
 		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "Exact match should return true.");
 	}
 
 	[TestMethod]
@@ -34,7 +36,7 @@ public class FuzzyTests
 		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "Subsequence match should return true.");
 	}
 
 	[TestMethod]
@@ -48,7 +50,7 @@ public class FuzzyTests
 		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "Case-insensitive match should return true.");
 	}
 
 	[TestMethod]
@@ -62,7 +64,7 @@ public class FuzzyTests
 		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
-		Assert.IsFalse(result);
+		Assert.IsFalse(result, "Non-matching pattern should return false.");
 	}
 
 	[TestMethod]
@@ -76,7 +78,7 @@ public class FuzzyTests
 		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
-		Assert.IsFalse(result);
+		Assert.IsFalse(result, "Pattern longer than subject should return false.");
 	}
 
 	[TestMethod]
@@ -90,7 +92,7 @@ public class FuzzyTests
 		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "Empty pattern should match any non-empty subject.");
 	}
 
 	[TestMethod]
@@ -104,7 +106,7 @@ public class FuzzyTests
 		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
-		Assert.IsFalse(result);
+		Assert.IsFalse(result, "Empty subject with non-empty pattern should return false.");
 	}
 
 	[TestMethod]
@@ -118,7 +120,7 @@ public class FuzzyTests
 		bool result = Fuzzy.Contains(subject, pattern);
 
 		// Assert
-		Assert.IsFalse(result);
+		Assert.IsFalse(result, "Both empty strings should return false.");
 	}
 
 	#endregion
@@ -136,8 +138,8 @@ public class FuzzyTests
 		bool result = Fuzzy.Contains(subject, pattern, out int score);
 
 		// Assert
-		Assert.IsTrue(result);
-		Assert.IsTrue(score > 0);
+		Assert.IsTrue(result, "Exact match should return true.");
+		Assert.IsGreaterThan(0, score, "Exact match should have a positive score.");
 	}
 
 	[TestMethod]
@@ -151,8 +153,8 @@ public class FuzzyTests
 		bool result = Fuzzy.Contains(subject, pattern, out int score);
 
 		// Assert
-		Assert.IsTrue(result);
-		Assert.IsTrue(score > 0);
+		Assert.IsTrue(result, "Subsequence match should return true.");
+		Assert.IsGreaterThan(0, score, "Subsequence match should have a positive score.");
 	}
 
 	[TestMethod]
@@ -166,7 +168,7 @@ public class FuzzyTests
 		bool result = Fuzzy.Contains(subject, pattern, out _);
 
 		// Assert
-		Assert.IsFalse(result);
+		Assert.IsFalse(result, "Non-matching pattern should return false.");
 		// Score may be negative or 0 depending on how close the match was
 	}
 
@@ -183,7 +185,7 @@ public class FuzzyTests
 		Fuzzy.Contains(subject2, pattern, out int score2);
 
 		// Assert
-		Assert.IsTrue(score1 > score2, "Adjacent matches should score higher");
+		Assert.IsGreaterThan(score2, score1, "Adjacent matches should score higher");
 	}
 
 	[TestMethod]
@@ -197,9 +199,9 @@ public class FuzzyTests
 		bool result = Fuzzy.Contains(subject, pattern, out int score);
 
 		// Assert
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "Match after separator should return true.");
 		// The 'w' match should get a separation bonus
-		Assert.IsTrue(score >= Fuzzy.matchAfterSeparatorBonus, "Score should include separator bonus");
+		Assert.IsGreaterThanOrEqualTo(Fuzzy.matchAfterSeparatorBonus, score, "Score should include separator bonus");
 	}
 
 	[TestMethod]
@@ -213,9 +215,9 @@ public class FuzzyTests
 		bool result = Fuzzy.Contains(subject, pattern, out int score);
 
 		// Assert
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "CamelCase match should return true.");
 		// The 'W' match should get a camelCase bonus
-		Assert.IsTrue(score >= Fuzzy.camelCaseMatchBonus, "Score should include camelCase bonus");
+		Assert.IsGreaterThanOrEqualTo(Fuzzy.camelCaseMatchBonus, score, "Score should include camelCase bonus");
 	}
 
 	#endregion
@@ -368,8 +370,8 @@ public class FuzzyTests
 		int score = Fuzzy.CalculateScore(subject, pattern, out bool patternPresent);
 
 		// Assert
-		Assert.IsTrue(patternPresent);
-		Assert.IsTrue(score > 0);
+		Assert.IsTrue(patternPresent, "Pattern should be present for exact match.");
+		Assert.IsGreaterThan(0, score, "Exact match should have a positive score.");
 	}
 
 	[TestMethod]
@@ -383,8 +385,8 @@ public class FuzzyTests
 		int score = Fuzzy.CalculateScore(subject, pattern, out bool patternPresent);
 
 		// Assert
-		Assert.IsFalse(patternPresent);
-		Assert.IsTrue(score < 0);
+		Assert.IsFalse(patternPresent, "Pattern should not be present when there is no match.");
+		Assert.IsLessThan(0, score, "Non-matching pattern should have a negative score.");
 	}
 
 	[TestMethod]
@@ -399,7 +401,7 @@ public class FuzzyTests
 		_ = Fuzzy.CalculateScore(subject, pattern, out bool patternPresent);
 
 		// Assert
-		Assert.IsFalse(patternPresent);
+		Assert.IsFalse(patternPresent, "Pattern should not be fully present for partial match.");
 	}
 
 	[TestMethod]
@@ -413,7 +415,7 @@ public class FuzzyTests
 		int score = Fuzzy.CalculateScore(subject, pattern, out bool patternPresent);
 
 		// Assert
-		Assert.IsTrue(patternPresent);  // Empty pattern is always "present"
+		Assert.IsTrue(patternPresent, "Empty pattern is always considered present.");
 		Assert.AreEqual(0, score);      // No characters to match, so score is 0
 	}
 
@@ -464,10 +466,10 @@ public class FuzzyTests
 		Fuzzy.Contains("shortToString", pattern, out int camelCaseScore);
 
 		// Assert that exact consecutive matches score higher
-		Assert.IsTrue(exactScore > separatedScore);
+		Assert.IsGreaterThan(separatedScore, exactScore, "Exact consecutive matches should score higher than separated matches.");
 
 		// CamelCase boundaries should provide a bonus
-		Assert.IsTrue(camelCaseScore > separatedScore);
+		Assert.IsGreaterThan(separatedScore, camelCaseScore, "CamelCase matches should score higher than separated matches.");
 	}
 
 	#endregion

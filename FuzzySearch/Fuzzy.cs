@@ -2,6 +2,10 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("ktsu.FuzzySearch.Test")]
+
 namespace ktsu.FuzzySearch;
 
 // Adapted from: https://gist.github.com/CDillinger/2aa02128f840bdca90340ce08ee71bc2
