@@ -1,6 +1,8 @@
-## v1.2.5-pre.1 (prerelease)
+## v1.2.5 (patch)
 
-Changes since v1.2.5-pre.1:
+Changes since v1.2.4:
+
+- Remove .github\workflows\project.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 ## v1.2.5-pre.1 (prerelease)
 
 Changes since v1.2.4:
