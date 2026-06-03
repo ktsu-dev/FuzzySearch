@@ -1,6 +1,6 @@
-## v1.2.12 (patch)
+## v1.2.13 (patch)
 
-Changes since v1.2.11:
+Changes since v1.2.12:
 
-- Bump Polyfill from 10.7.0 to 10.7.1 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump Polyfill from 10.7.1 to 10.8.0 ([@dependabot[bot]](https://github.com/dependabot[bot]))
 
