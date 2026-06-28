@@ -1,6 +1,8 @@
-## v1.2.19
+## v1.2.20 (patch)
 
-No significant changes detected since v1.2.19.
+Changes since v1.2.19:
+
+- chore: remove SourceLink package references from csproj ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.2.19 (patch)
 
