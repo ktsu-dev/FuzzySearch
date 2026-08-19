@@ -8,7 +8,7 @@
 [![NuGet Downloads](https://img.shields.io/nuget/dt/ktsu.FuzzySearch?label=Downloads&logo=nuget)](https://nuget.org/packages/ktsu.FuzzySearch)
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ktsu-dev/FuzzySearch?label=Commits&logo=github)](https://github.com/ktsu-dev/FuzzySearch/commits/main)
 [![GitHub contributors](https://img.shields.io/github/contributors/ktsu-dev/FuzzySearch?label=Contributors&logo=github)](https://github.com/ktsu-dev/FuzzySearch/graphs/contributors)
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/FuzzySearch/dotnet.yml?label=Build&logo=github)](https://github.com/ktsu-dev/FuzzySearch/actions)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/FuzzySearch/dotnet.yml?branch=main&label=Build&logo=github)](https://github.com/ktsu-dev/FuzzySearch/actions)
 
 ## Introduction
 
