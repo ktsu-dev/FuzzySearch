@@ -606,6 +606,37 @@ public class FuzzyTests
 		Assert.IsFalse(result, "Two supplementary-plane characters sharing a high surrogate are still different characters.");
 	}
 
+	[TestMethod]
+	public void Contains_WithScore_SupplementaryPlanePrefix_PenalizedPerCharacterNotPerCodeUnit()
+	{
+		// Arrange: both subjects have exactly three unmatched characters before the match, but the emoji prefix
+		// occupies six UTF-16 code units rather than three.
+		string emojiSubject = $"{Emoji}{Emoji}{Emoji}y";
+		string asciiSubject = "abcy";
+
+		// Act
+		Fuzzy.Contains(emojiSubject, "y", out int emojiScore);
+		Fuzzy.Contains(asciiSubject, "y", out int asciiScore);
+
+		// Assert
+		Assert.AreEqual(asciiScore, emojiScore, "The prefix penalty should count skipped characters, not their UTF-16 width.");
+	}
+
+	[TestMethod]
+	public void Contains_WithScore_SupplementaryPlanePrefix_DoesNotExceedTheUncappedPenalty()
+	{
+		// Arrange: two skipped codepoints occupy four UTF-16 code units, which is still under the penalty cap,
+		// so a code-unit count would show through as a larger penalty rather than being hidden by the cap.
+		string emojiSubject = $"{Emoji}{Emoji}y";
+
+		// Act
+		Fuzzy.Contains(emojiSubject, "y", out int emojiScore);
+		Fuzzy.Contains("aby", "y", out int asciiScore);
+
+		// Assert
+		Assert.AreEqual(asciiScore, emojiScore, "Two skipped supplementary-plane characters should cost the same as two skipped ASCII characters.");
+	}
+
 	#endregion
 
 	#region Integration Tests
