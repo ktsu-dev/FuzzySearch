@@ -14,4 +14,9 @@
     <ProjectReference Include="..\FuzzySearch\FuzzySearch.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- ReadmeTests checks the shipped README against the library's public surface. -->
+    <None Include="..\README.md" Link="README.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
