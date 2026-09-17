@@ -171,6 +171,10 @@ public static class Fuzzy
 		int patternLength = pattern.Length;
 		int strIdx = 0;
 		int strLength = subject.Length;
+
+		// Counts codepoints rather than code units, so the prefix penalty reflects skipped characters and not the
+		// UTF-16 width of those characters.
+		int strCodepointIdx = 0;
 		bool prevMatched = false;
 		bool prevLower = false;
 		bool prevSeparator = true; // true if first letter match gets separator bonus
@@ -210,7 +214,7 @@ public static class Fuzzy
 			{
 				int newScore = 0;
 
-				score = PenalizeNonPatternCharacters(score, patternIdx, strIdx);
+				score = PenalizeNonPatternCharacters(score, patternIdx, strCodepointIdx);
 
 				newScore = ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, newScore);
 
@@ -249,6 +253,7 @@ public static class Fuzzy
 			prevSeparator = strChar is '_' or ' ';
 
 			strIdx += strCharLength;
+			strCodepointIdx++;
 		}
 
 		// Apply score for last match
@@ -390,15 +395,18 @@ public static class Fuzzy
 	/// </summary>
 	/// <param name="score">The current score to apply penalties to.</param>
 	/// <param name="patternIdx">The current index in the pattern.</param>
-	/// <param name="strIdx">The current index in the subject span.</param>
+	/// <param name="precedingCodepointCount">
+	/// The number of subject codepoints preceding the match. This is a count of characters, not of UTF-16 code units,
+	/// so a supplementary-plane prefix is penalized the same as a basic-plane prefix of the same length.
+	/// </param>
 	/// <returns>The updated score after applying any applicable penalties.</returns>
-	internal static int PenalizeNonPatternCharacters(int score, int patternIdx, int strIdx)
+	internal static int PenalizeNonPatternCharacters(int score, int patternIdx, int precedingCodepointCount)
 	{
 		// Apply penalty for each letter before the first pattern match
 		// Note: Math.Max because penalties are negative values. So max is smallest penalty.
 		if (patternIdx == 0)
 		{
-			int penalty = Math.Max(strIdx * unmatchedPrefixLetterPenalty, maxPrefixPenalty);
+			int penalty = Math.Max(precedingCodepointCount * unmatchedPrefixLetterPenalty, maxPrefixPenalty);
 			score += penalty;
 		}
 
