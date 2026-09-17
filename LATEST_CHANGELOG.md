@@ -1,6 +1,7 @@
-## v1.3.4 (patch)
+## v1.3.5 (patch)
 
-Changes since v1.3.3:
+Changes since v1.3.4:
 
-- Bump the ktsu group with 9 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- fix: count the prefix penalty in codepoints, not UTF-16 code units [patch] ([@Claude](https://github.com/Claude))
+- docs: document only the API the library actually ships [patch] ([@Claude](https://github.com/Claude))
 
