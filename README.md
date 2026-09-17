@@ -12,15 +12,17 @@
 
 ## Introduction
 
-FuzzySearch is a .NET library that provides fuzzy string matching capabilities with intelligent scoring. It's perfect for implementing search-as-you-type features, command palettes, or any application requiring flexible string matching. This library offers both basic contains-style matching and more sophisticated algorithms that can rank multiple potential matches by relevance.
+FuzzySearch is a .NET library that provides fuzzy string matching capabilities with intelligent scoring. It's perfect for implementing search-as-you-type features, command palettes, or any application requiring flexible string matching.
+
+The whole library is one static class, `Fuzzy`, with two `Contains` overloads: one that answers whether a subject matches a pattern, and one that also hands back a score you can rank by.
 
 ## Features
 
-- **Fuzzy String Matching**: Match strings even when they contain typos or missing characters
-- **Intelligent Scoring**: Rank matches by quality with a smart scoring algorithm
-- **Case Insensitivity**: Optional case-insensitive matching
-- **Filtering Collections**: Filter lists of strings and rank results
-- **Customizable Parameters**: Adjust matching behavior to suit different needs
+- **Subsequence Matching**: Match a subject against a pattern whose characters appear in order but not necessarily together
+- **Intelligent Scoring**: Rank matches by quality with a scoring algorithm that rewards adjacent matches, matches after separators, and matches at camelCase boundaries
+- **Case Insensitive**: Matching always ignores case; there is no case-sensitive mode
+- **Unicode Aware**: Input is normalized to NFC and compared one codepoint at a time, so surrogate pairs match as a whole
+- **Span Based**: Takes `ReadOnlySpan<char>`, and allocates nothing for ASCII input
 - **Lightweight**: Minimal dependencies, focused on performance
 - **Well-tested**: Comprehensive test suite ensuring reliability
 
@@ -67,7 +69,7 @@ class Program
 
 ### Matching with Scoring
 
-To get both a match result and a score that indicates the quality of the match:
+The second overload also reports a score, so you can tell a good match from a barely-there one:
 
 ```csharp
 using ktsu.FuzzySearch;
@@ -78,19 +80,20 @@ class Program
     {
         string text = "Hello World";
         string pattern = "hlo";
-        
-        var result = Fuzzy.Match(text, pattern);
-        
-        Console.WriteLine($"Is match: {result.IsMatch}");          // True
-        Console.WriteLine($"Score: {result.Score}");               // A value between 0-1
-        Console.WriteLine($"Character indices: {result.Indices}"); // Indices of matched characters
+
+        bool isMatch = Fuzzy.Contains(text, pattern, out int score);
+
+        Console.WriteLine($"Is match: {isMatch}"); // True
+        Console.WriteLine($"Score: {score}");      // Higher is better
     }
 }
 ```
 
-### Filtering a Collection
+The score is an unbounded `int`, not a normalized ratio. It is only meaningful when comparing candidates against the *same* pattern, and it is reported whether or not the whole pattern was found — a near miss still scores. Use the return value to decide whether it matched at all, and the score to order the matches.
 
-Filter a list of strings and sort them by match quality:
+### Ranking a Collection
+
+There is no built-in filter method. Ranking a collection is a `Contains` call per candidate:
 
 ```csharp
 using ktsu.FuzzySearch;
@@ -99,96 +102,70 @@ class Program
 {
     static void Main()
     {
-        var items = new List<string>
-        {
+        string[] items =
+        [
             "AppDataStorage",
             "Application Settings",
             "Data Store",
             "File System",
-            "Storage Provider"
-        };
-        
-        string pattern = "appstor";
-        
-        // Filter and rank by match quality
-        var results = Fuzzy.Filter(items, pattern);
-        
-        foreach (var result in results)
+            "Storage Provider",
+        ];
+
+        string pattern = "stor";
+
+        List<(string Item, int Score)> matches = [];
+        foreach (string item in items)
         {
-            Console.WriteLine($"{result.Item} (Score: {result.Score})");
+            if (Fuzzy.Contains(item, pattern, out int score))
+            {
+                matches.Add((item, score));
+            }
         }
-        
-        // Output might be:
-        // AppDataStorage (Score: 0.89)
-        // Application Settings (Score: 0.65)
-        // Storage Provider (Score: 0.52)
+
+        foreach ((string item, int score) in matches.OrderByDescending(match => match.Score))
+        {
+            Console.WriteLine($"{item} (Score: {score})");
+        }
+
+        // Storage Provider (Score: 15)
+        // Data Store (Score: 14)
+        // AppDataStorage (Score: 10)
     }
 }
 ```
 
-### Advanced Options
+### Matching Against Objects
 
-Customize the matching behavior with options:
+The same shape works for objects — project each one to the text you want matched:
 
 ```csharp
 using ktsu.FuzzySearch;
 
 class Program
 {
+    sealed class FileItem
+    {
+        public required string Name { get; init; }
+        public required string Path { get; init; }
+    }
+
     static void Main()
     {
-        var options = new FuzzyOptions
-        {
-            CaseSensitive = true,              // Default is false
-            ScoreThreshold = 0.4,              // Minimum score to consider a match
-            BonusConsecutiveChars = 1.5,       // Bonus for consecutive matched characters
-            BonusStartOfWord = 2.0,            // Bonus for matches at word boundaries
-            PenaltyUnmatched = 0.1,            // Penalty for unmatched characters
-            MaxPatternLength = 64              // Maximum pattern length to consider
-        };
-        
-        string text = "FileSystemWatcher";
-        string pattern = "FSW";
-        
-        var result = Fuzzy.Match(text, pattern, options);
-        Console.WriteLine($"Score with custom options: {result.Score}");
-    }
-}
-```
+        FileItem[] files =
+        [
+            new() { Name = "Document.pdf", Path = "/documents/" },
+            new() { Name = "Presentation.pptx", Path = "/presentations/" },
+            new() { Name = "Spreadsheet.xlsx", Path = "/spreadsheets/" },
+        ];
 
-### Object Collections
-
-Filter and match against object collections by providing a selector function:
-
-```csharp
-using ktsu.FuzzySearch;
-
-class Program
-{
-    class FileItem
-    {
-        public string Name { get; set; }
-        public string Path { get; set; }
-        public long Size { get; set; }
-    }
-    
-    static void Main()
-    {
-        var files = new List<FileItem>
-        {
-            new FileItem { Name = "Document.pdf", Path = "/documents/", Size = 1024 },
-            new FileItem { Name = "Presentation.pptx", Path = "/presentations/", Size = 2048 },
-            new FileItem { Name = "Spreadsheet.xlsx", Path = "/spreadsheets/", Size = 512 }
-        };
-        
         string pattern = "doc";
-        
-        // Filter objects using a selector function
-        var results = Fuzzy.Filter(files, pattern, item => item.Name);
-        
-        foreach (var result in results)
+
+        foreach (FileItem file in files)
         {
-            Console.WriteLine($"{result.Item.Name} (Score: {result.Score})");
+            if (Fuzzy.Contains(file.Name, pattern, out int score))
+            {
+                Console.WriteLine($"{file.Name} (Score: {score})");
+            }
         }
     }
 }
@@ -198,42 +175,34 @@ class Program
 
 ### `Fuzzy` Static Class
 
-The main class providing fuzzy matching functionality.
+`Fuzzy` is the library's entire public surface. It is a static class with two methods, both overloads of `Contains`.
 
 #### Methods
 
 | Name | Parameters | Return Type | Description |
 |------|------------|-------------|-------------|
-| `Contains` | `string text, string pattern, bool caseSensitive = false` | `bool` | Checks if the text contains the pattern in sequence |
-| `Match` | `string text, string pattern, FuzzyOptions options = null` | `FuzzyResult` | Matches text against pattern with scoring |
-| `Filter` | `IEnumerable<string> items, string pattern, FuzzyOptions options = null` | `IEnumerable<FuzzyItem<string>>` | Filters and ranks a collection of strings |
-| `Filter<T>` | `IEnumerable<T> items, string pattern, Func<T, string> selector, FuzzyOptions options = null` | `IEnumerable<FuzzyItem<T>>` | Filters and ranks a collection of objects using a selector function |
+| `Contains` | `ReadOnlySpan<char> subject, ReadOnlySpan<char> pattern` | `bool` | Whether `subject` contains every character of `pattern`, in order |
+| `Contains` | `ReadOnlySpan<char> subject, ReadOnlySpan<char> pattern, out int outScore` | `bool` | The same answer, plus a match-quality score |
 
-### `FuzzyResult` Class
+Both overloads take `ReadOnlySpan<char>`, so a `string` argument is passed straight through by the compiler's implicit conversion — there is no separate `string` overload to look for.
 
-Represents the result of a fuzzy match operation.
+#### Behaviour
 
-#### Properties
+- **Case is always ignored.** There is no option to make matching case-sensitive.
+- **An empty pattern matches any non-empty subject**, and scores `0`. An empty subject never matches.
+- **Scores are unbounded `int`s**, comparable only within a single pattern. `outScore` is set even when the method returns `false`.
+- **Input is normalized to NFC** before comparison, so precomposed and decomposed text match. This relies on the runtime's globalization data: under `InvariantGlobalization`, `string.Normalize` is a no-op and the two forms will not match.
+- **Comparison advances one codepoint at a time**, so a surrogate pair matches only as a whole and a lone surrogate cannot match half of an unrelated character.
 
-| Name | Type | Description |
-|------|------|-------------|
-| `IsMatch` | `bool` | Indicates if the pattern matches the text |
-| `Score` | `double` | A value between 0 and 1 indicating match quality (1 is perfect) |
-| `Indices` | `int[]` | The indices in the text where pattern characters were matched |
+#### Scoring
 
-### `FuzzyOptions` Class
-
-Configuration options for fuzzy matching.
-
-#### Properties
-
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| `CaseSensitive` | `bool` | `false` | Whether matching should be case-sensitive |
-| `ScoreThreshold` | `double` | `0.3` | Minimum score required to consider a match valid |
-| `BonusConsecutiveChars` | `double` | `1.0` | Score bonus for consecutive matched characters |
-| `BonusStartOfWord` | `double` | `1.5` | Score bonus for matches at word boundaries |
-| `PenaltyUnmatched` | `double` | `0.1` | Score reduction for unmatched characters |
+| Rule | Effect |
+|------|--------|
+| Match adjacent to the previous match | `+5` |
+| Match after a `_` or space separator | `+10` |
+| Match at a camelCase boundary | `+10` |
+| Each unmatched character | `-1` |
+| Unmatched characters before the first match | `-1` each, capped at `-5` |
 
 ## Contributing
 
