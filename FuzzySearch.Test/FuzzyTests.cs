@@ -449,6 +449,76 @@ public class FuzzyTests
 		Assert.AreEqual(0, score);      // No characters to match, so score is 0
 	}
 
+	[TestMethod]
+	public void CalculateScore_LongUnmatchedPrefix_PenaltyFlattensAtTheCap()
+	{
+		// Arrange: the same single-character match, preceded by ever more junk
+		string pattern = "y";
+
+		// Act
+		int atCap = Fuzzy.CalculateScore("xxxxxy", pattern, out bool atCapPresent);
+		int pastCap = Fuzzy.CalculateScore("xxxxxxxxxxxxy", pattern, out bool pastCapPresent);
+		int wellPastCap = Fuzzy.CalculateScore(new string('x', 100) + "y", pattern, out bool wellPastCapPresent);
+
+		// Assert: all still match, and the prefix cost stops growing once the cap is reached
+		Assert.IsTrue(atCapPresent, "The pattern is present regardless of the prefix length.");
+		Assert.IsTrue(pastCapPresent, "The pattern is present regardless of the prefix length.");
+		Assert.IsTrue(wellPastCapPresent, "The pattern is present regardless of the prefix length.");
+
+		Assert.AreEqual(atCap, pastCap, "A prefix beyond the cap threshold must not cost any more than one at it.");
+		Assert.AreEqual(atCap, wellPastCap, "The prefix penalty must stay flat however long the prefix grows.");
+	}
+
+	[TestMethod]
+	public void CalculateScore_PrefixPenalty_NeverExceedsTheDocumentedCap()
+	{
+		// Arrange: a single-character pattern matched at the very end earns no bonuses, so the prefix
+		// penalty is the only thing moving the score and the cap is directly observable as a floor
+		string pattern = "y";
+
+		// Act & Assert
+		for (int prefixLength = 1; prefixLength <= 20; prefixLength++)
+		{
+			int score = Fuzzy.CalculateScore(new string('x', prefixLength) + "y", pattern, out _);
+
+			Assert.IsGreaterThanOrEqualTo(Fuzzy.maxPrefixPenalty, score,
+				$"A prefix of {prefixLength} characters scored {score}, beyond the documented cap of {Fuzzy.maxPrefixPenalty}.");
+		}
+	}
+
+	[TestMethod]
+	public void CalculateScore_LongerPrefix_NeverScoresHigherThanAShorterOne()
+	{
+		// Arrange
+		string pattern = "y";
+		int previous = Fuzzy.CalculateScore("y", pattern, out _);
+
+		// Act & Assert: the penalty is monotonic — a longer prefix is never rewarded, only flattened
+		for (int prefixLength = 1; prefixLength <= 20; prefixLength++)
+		{
+			int score = Fuzzy.CalculateScore(new string('x', prefixLength) + "y", pattern, out _);
+			Assert.IsLessThanOrEqualTo(previous, score,
+				$"A prefix of {prefixLength} characters scored higher than the shorter prefix before it.");
+			previous = score;
+		}
+	}
+
+	[TestMethod]
+	public void CalculateScore_NonMatchingSubject_StillReflectsHowMuchWasSkipped()
+	{
+		// Arrange: the pattern appears in neither subject, so the prefix refund must not apply
+		string pattern = "y";
+
+		// Act
+		int shortSubject = Fuzzy.CalculateScore("xxx", pattern, out bool shortPresent);
+		int longSubject = Fuzzy.CalculateScore("xxxxxxxxxxxx", pattern, out bool longPresent);
+
+		// Assert
+		Assert.IsFalse(shortPresent, "The pattern is not present in a subject without it.");
+		Assert.IsFalse(longPresent, "The pattern is not present in a subject without it.");
+		Assert.IsLessThan(shortSubject, longSubject, "A longer non-matching subject should still score lower.");
+	}
+
 	#endregion
 
 	#region Unicode Normalization Tests

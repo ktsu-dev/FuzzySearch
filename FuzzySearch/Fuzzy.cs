@@ -42,7 +42,11 @@ public static class Fuzzy
 	/// <summary>The penalty for each unmatched character at the beginning of the string.</summary>
 	internal const int unmatchedPrefixLetterPenalty = -1;
 
-	/// <summary>The maximum prefix penalty that can be applied.</summary>
+	/// <summary>
+	/// The maximum prefix penalty that can be applied. Once the unmatched prefix is this expensive, a longer
+	/// prefix costs no more, so a match preceded by a long irrelevant prefix is deprioritized rather than
+	/// punished without bound.
+	/// </summary>
 	internal const int maxPrefixPenalty = -5;
 
 	/// <summary>The penalty for each unmatched character in the string.</summary>
@@ -184,6 +188,12 @@ public static class Fuzzy
 		int bestLetterLength = 0;
 		int bestLetterScore = 0;
 
+		// The generic per-codepoint penalty below also charges the codepoints before the first match. That is
+		// refunded when the first match lands, so PenalizeNonPatternCharacters stays the sole — and therefore
+		// capped — source of prefix cost. Without the refund the two stack and maxPrefixPenalty bounds only one
+		// of them, leaving the score falling without bound as the prefix grows.
+		int prefixPenaltyCharged = 0;
+
 		// Loop over codepoints in subject
 		while (strIdx != strLength)
 		{
@@ -214,6 +224,14 @@ public static class Fuzzy
 			{
 				int newScore = 0;
 
+				if (patternIdx == 0)
+				{
+					// First pattern codepoint matched: hand back the uncapped per-codepoint cost of the prefix,
+					// so that the capped penalty applied next is all the prefix is charged.
+					score -= prefixPenaltyCharged;
+					prefixPenaltyCharged = 0;
+				}
+
 				score = PenalizeNonPatternCharacters(score, patternIdx, strCodepointIdx);
 
 				newScore = ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, newScore);
@@ -243,6 +261,15 @@ public static class Fuzzy
 			else
 			{
 				score += unmatchedLetterPenalty;
+
+				if (patternIdx == 0)
+				{
+					// Still before the first match, so this is prefix cost. Remember it for the refund above.
+					// A subject that never matches the pattern keeps these penalties, so its score still
+					// reflects how much was skipped.
+					prefixPenaltyCharged += unmatchedLetterPenalty;
+				}
+
 				prevMatched = false;
 			}
 
