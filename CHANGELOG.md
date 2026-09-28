@@ -2,6 +2,7 @@
 
 Changes since v1.3.12:
 
+- Normalize the well-formed text around a lone surrogate [patch] ([@Claude](https://github.com/Claude))
 - Match Greek final sigma and the micro sign ignoring case [patch] ([@Claude](https://github.com/Claude))
 
 ## v1.3.12 (patch)
@@ -876,6 +877,13 @@ Changes since v1.0.0:
 - Sync Directory.Build.targets ([@ktsu[bot]](https://github.com/ktsu[bot]))
 - Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
+## v1.0.0
+
+Changes since v1.0.0-alpha.18:
+
+- Bump MSTest.TestFramework from 3.6.3 to 3.6.4 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump MSTest.TestAdapter from 3.6.3 to 3.6.4 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+
 ## v1.0.0-alpha.18 (prerelease)
 
 Changes since v1.0.0-alpha.17:
@@ -974,12 +982,6 @@ Changes since v1.0.0-alpha.1:
 
 ## v1.0.0-alpha.1 (prerelease)
 
-No significant changes detected since v1.0.0.
-
-## v1.0.0 (major)
-
-- Update VERSION ([@matt-edmondson](https://github.com/matt-edmondson))
-- Migrate ktsu.io to ktsu namespace ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update Directory.Build.targets ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
