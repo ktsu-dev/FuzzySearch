@@ -376,9 +376,56 @@ public static class Fuzzy
 		}
 		catch (ArgumentException)
 		{
-			// Text that is not well-formed Unicode (for example a lone surrogate) cannot be normalized.
-			// Compare it as it was given rather than failing the match outright.
-			return value;
+			// Text that is not well-formed Unicode (for example a lone surrogate) cannot be normalized as a
+			// whole. Normalize the well-formed text around it instead, so one stray surrogate does not
+			// switch off canonical equivalence for the rest of the string.
+			return NormalizeWellFormedRuns(value);
+		}
+	}
+
+	/// <summary>
+	/// Normalizes each well-formed run of <paramref name="value"/> to <see cref="NormalizationForm.FormC"/>, leaving
+	/// every unpaired surrogate where it was.
+	/// </summary>
+	/// <param name="value">Text containing at least one unpaired surrogate.</param>
+	/// <returns>The text with its well-formed runs normalized.</returns>
+	/// <remarks>
+	/// An unpaired surrogate has no canonical composition with its neighbours, so treating it as a run boundary gives
+	/// the same result as normalizing the valid text on either side of it.
+	/// </remarks>
+	private static ReadOnlySpan<char> NormalizeWellFormedRuns(ReadOnlySpan<char> value)
+	{
+		StringBuilder builder = new(value.Length);
+		int runStart = 0;
+
+		for (int i = 0; i < value.Length; i++)
+		{
+			char c = value[i];
+			if (!char.IsSurrogate(c))
+			{
+				continue;
+			}
+
+			if (char.IsHighSurrogate(c) && i + 1 < value.Length && char.IsLowSurrogate(value[i + 1]))
+			{
+				i++;
+				continue;
+			}
+
+			AppendNormalized(builder, value[runStart..i]);
+			builder.Append(c);
+			runStart = i + 1;
+		}
+
+		AppendNormalized(builder, value[runStart..]);
+		return builder.ToString().AsSpan();
+
+		static void AppendNormalized(StringBuilder builder, ReadOnlySpan<char> run)
+		{
+			if (!run.IsEmpty)
+			{
+				builder.Append(run.ToString().Normalize(NormalizationForm.FormC));
+			}
 		}
 	}
 
