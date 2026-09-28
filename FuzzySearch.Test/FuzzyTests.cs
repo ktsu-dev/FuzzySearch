@@ -709,6 +709,65 @@ public class FuzzyTests
 
 	#endregion
 
+	#region Case Folding Tests
+
+	[TestMethod]
+	[DataRow("ΟΔΟΣ", "οδος")]
+	[DataRow("bcaAσ", "ς")]
+	[DataRow("bcaAσ", "Σ")]
+	[DataRow("Μ", "µ")]
+	[DataRow("οδος", "ΟΔΟΣ")]
+	[DataRow("µ", "μ")]
+	public void Contains_LettersWithMoreThanOneLowercaseForm_MatchIgnoringCase(string subject, string pattern)
+	{
+		// Act
+		bool result = Fuzzy.Contains(subject, pattern);
+		bool scoredResult = Fuzzy.Contains(subject, pattern, out _);
+
+		// Assert
+		Assert.IsTrue(result, $"\"{pattern}\" should match \"{subject}\" ignoring case.");
+		Assert.IsTrue(scoredResult, $"The scoring overload should agree that \"{pattern}\" matches \"{subject}\".");
+	}
+
+	[TestMethod]
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lower-casing the pattern is one of the two case changes under test.")]
+	public void Contains_ChangingThePatternsCase_NeverChangesTheResultOrScore()
+	{
+		// Arrange: an alphabet holding both sigma forms, the micro sign and the Greek mu alongside plain letters.
+		const string alphabet = "abAσςΣµΜμ ";
+		Random random = new(88);
+
+		for (int i = 0; i < 20000; i++)
+		{
+			string subject = RandomString(random, alphabet, random.Next(0, 8));
+			string pattern = RandomString(random, alphabet, random.Next(1, 4));
+
+			// Act
+			bool result = Fuzzy.Contains(subject, pattern, out int score);
+			bool upperResult = Fuzzy.Contains(subject, pattern.ToUpperInvariant(), out int upperScore);
+			bool lowerResult = Fuzzy.Contains(subject, pattern.ToLowerInvariant(), out int lowerScore);
+
+			// Assert
+			Assert.AreEqual(result, upperResult, $"Upper-casing pattern \"{pattern}\" changed the match against \"{subject}\".");
+			Assert.AreEqual(result, lowerResult, $"Lower-casing pattern \"{pattern}\" changed the match against \"{subject}\".");
+			Assert.AreEqual(score, upperScore, $"Upper-casing pattern \"{pattern}\" changed the score against \"{subject}\".");
+			Assert.AreEqual(score, lowerScore, $"Lower-casing pattern \"{pattern}\" changed the score against \"{subject}\".");
+		}
+	}
+
+	private static string RandomString(Random random, string alphabet, int length)
+	{
+		char[] chars = new char[length];
+		for (int i = 0; i < length; i++)
+		{
+			chars[i] = alphabet[random.Next(alphabet.Length)];
+		}
+
+		return new string(chars);
+	}
+
+	#endregion
+
 	#region Integration Tests
 
 	[TestMethod]

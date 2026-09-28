@@ -332,8 +332,25 @@ public static class Fuzzy
 
 		return leftLength == 2
 			? left[leftIndex] == right[rightIndex] && left[leftIndex + 1] == right[rightIndex + 1]
-			: char.ToLowerInvariant(left[leftIndex]) == char.ToLowerInvariant(right[rightIndex]);
+			: CharsEqualIgnoringCase(left[leftIndex], right[rightIndex]);
 	}
+
+	/// <summary>
+	/// Determines whether two characters are the same, ignoring case.
+	/// </summary>
+	/// <param name="left">The first character.</param>
+	/// <param name="right">The second character.</param>
+	/// <returns><c>true</c> if the characters are equal ignoring case; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// Comparing lowercase forms alone is not enough, because some letters have more than one lowercase form that
+	/// share an uppercase one. The Greek final sigma <c>ς</c> and <c>σ</c> both uppercase to <c>Σ</c>, but only
+	/// <c>σ</c> is what <c>Σ</c> lowercases to; likewise the micro sign <c>µ</c> uppercases to <c>Μ</c>, which
+	/// lowercases to <c>μ</c>. Matching on either the lowercase or the uppercase forms makes both pairs equal.
+	/// </remarks>
+	private static bool CharsEqualIgnoringCase(char left, char right) =>
+		left == right
+		|| char.ToLowerInvariant(left) == char.ToLowerInvariant(right)
+		|| char.ToUpperInvariant(left) == char.ToUpperInvariant(right);
 
 	/// <summary>
 	/// Normalizes a span to <see cref="NormalizationForm.FormC"/> so that canonically equivalent text compares equal.
