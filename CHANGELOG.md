@@ -1,3 +1,9 @@
+## v1.3.14-pre.1 (prerelease)
+
+Changes since v1.3.13:
+
+- Bump Polyfill from 11.4.0 to 11.4.1 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+
 ## v1.3.13 (patch)
 
 Changes since v1.3.12:
@@ -90,15 +96,21 @@ Changes since v1.2.0:
 - docs: scope build badge to the default branch ([@matt-edmondson](https://github.com/matt-edmondson))
 - Stop Update SDKs failing when there is nothing to update ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix build errors from ktsu.Sdk analyzer update [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 - Sync .runsettings ([@KtsuTools](https://github.com/KtsuTools))
 - Sync .editorconfig ([@KtsuTools](https://github.com/KtsuTools))
 - Sync .gitattributes ([@KtsuTools](https://github.com/KtsuTools))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 - chore: remove unused SourceLink package versions ([@matt-edmondson](https://github.com/matt-edmondson))
 - chore: remove SourceLink package references from csproj ([@matt-edmondson](https://github.com/matt-edmondson))
 - Add TAGS.md with NuGet package tags ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 - Remove legacy build scripts ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove .github\workflows\project.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - migrate to dotnet 10 ([@matt-edmondson](https://github.com/matt-edmondson))
+- Enhance CI/CD configuration and coverage reporting. Updated .runsettings for coverage settings, modified GitHub Actions workflow to handle skipped releases more effectively, and improved test result handling in PSBuild.psm1. Added NuGet package detection in update-winget-manifests.ps1. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update package versions and suppressions in project files. Removed specific package versions from Directory.Packages.props, updated ktsu SDK versions in global.json, and added numerous compatibility suppressions in CompatibilitySuppressions.xml for FuzzySearch project. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor project configuration and CI/CD workflows, including the addition of new SDK management and coverage reporting features. Update .runsettings, introduce Directory.Packages.props and global.json for centralized package version management, and enhance GitHub Actions workflows for better build and test processes. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update configuration files and scripts for improved build and test processes ([@matt-edmondson](https://github.com/matt-edmondson))
 - Remove obsolete build configuration files and scripts ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update README and project files for improved clarity and SDK versioning ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -150,9 +162,11 @@ Changes since v1.2.33:
 Changes since v1.2.32:
 
 - Fix build errors from ktsu.Sdk analyzer update [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 - Sync .runsettings ([@KtsuTools](https://github.com/KtsuTools))
 - Sync .editorconfig ([@KtsuTools](https://github.com/KtsuTools))
 - Sync .gitattributes ([@KtsuTools](https://github.com/KtsuTools))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 
 ## v1.2.32 (patch)
 
@@ -320,10 +334,13 @@ Changes since v1.2.9:
 Changes since v1.2.8:
 
 - Add TAGS.md with NuGet package tags ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 
 ## v1.2.9-pre.1 (prerelease)
 
-No significant changes detected since v1.2.9.
+Changes since v1.2.8:
+
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 
 ## v1.2.8 (patch)
 
@@ -337,7 +354,11 @@ Changes since v1.2.7:
 
 ## v1.2.8-pre.1 (prerelease)
 
-No significant changes detected since v1.2.8.
+Changes since v1.2.7:
+
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.2.7 (patch)
 
@@ -424,22 +445,27 @@ Changes since v1.2.6-pre.1:
 
 ## v1.2.6-pre.1 (prerelease)
 
-No significant changes detected since v1.2.6.
+Changes since v1.2.5:
+
+- Sync scripts\update-winget-manifests.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync global.json ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync COPYRIGHT.md ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.2.5 (patch)
 
 Changes since v1.2.4:
 
 - Remove .github\workflows\project.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+
+## v1.2.5-pre.1 (prerelease)
+
+Changes since v1.2.4:
+
 - Merge remote-tracking branch 'refs/remotes/origin/main' ([@ktsu[bot]](https://github.com/ktsu[bot]))
 - Sync global.json ([@ktsu[bot]](https://github.com/ktsu[bot]))
 - Merge remote-tracking branch 'refs/remotes/origin/main' ([@ktsu[bot]](https://github.com/ktsu[bot]))
 - Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
 - Sync .gitignore ([@ktsu[bot]](https://github.com/ktsu[bot]))
-
-## v1.2.5-pre.1 (prerelease)
-
-No significant changes detected since v1.2.5.
 
 ## v1.2.4 (patch)
 
@@ -462,22 +488,29 @@ Changes since v1.2.4-pre.1:
 
 ## v1.2.4-pre.1 (prerelease)
 
-No significant changes detected since v1.2.4.
+Changes since v1.2.3:
+
+- Sync scripts\PSBuild.psm1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.2.3 (patch)
 
 Changes since v1.2.2:
 
+- Enhance CI/CD configuration and coverage reporting. Updated .runsettings for coverage settings, modified GitHub Actions workflow to handle skipped releases more effectively, and improved test result handling in PSBuild.psm1. Added NuGet package detection in update-winget-manifests.ps1. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update package versions and suppressions in project files. Removed specific package versions from Directory.Packages.props, updated ktsu SDK versions in global.json, and added numerous compatibility suppressions in CompatibilitySuppressions.xml for FuzzySearch project. ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.2.3-pre.1 (prerelease)
 
-No significant changes detected since v1.2.3.
+Changes since v1.2.2:
+
+- Update package versions and suppressions in project files. Removed specific package versions from Directory.Packages.props, updated ktsu SDK versions in global.json, and added numerous compatibility suppressions in CompatibilitySuppressions.xml for FuzzySearch project. ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.2.2 (patch)
 
 Changes since v1.2.1:
 
+- Refactor project configuration and CI/CD workflows, including the addition of new SDK management and coverage reporting features. Update .runsettings, introduce Directory.Packages.props and global.json for centralized package version management, and enhance GitHub Actions workflows for better build and test processes. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update configuration files and scripts for improved build and test processes ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.2.2-pre.17 (prerelease)
@@ -561,7 +594,9 @@ No significant changes detected since v1.2.2-pre.1.
 
 ## v1.2.2-pre.1 (prerelease)
 
-No significant changes detected since v1.2.2.
+Changes since v1.2.1:
+
+- Sync scripts\PSBuild.psm1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.2.1 (patch)
 
@@ -580,7 +615,9 @@ Changes since v1.2.1-pre.1:
 
 ## v1.2.1-pre.1 (prerelease)
 
-No significant changes detected since v1.2.1.
+Changes since v1.2.0:
+
+- Sync .editorconfig ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.2.0 (minor)
 
@@ -784,7 +821,9 @@ Changes since v1.0.13-pre.1:
 
 ## v1.0.13-pre.1 (prerelease)
 
-No significant changes detected since v1.0.13.
+Changes since v1.0.12-pre.1:
+
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.0.12-pre.1 (prerelease)
 
@@ -806,7 +845,7 @@ Changes since v1.0.9:
 
 ## v1.0.10-pre.1 (prerelease)
 
-Changes since v1.0.10:
+Changes since v1.0.9:
 
 - Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
 
@@ -993,5 +1032,6 @@ Changes since v1.0.0-alpha.1:
 - Update LICENSE ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update nuget.config ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update nuget.config ([@matt-edmondson](https://github.com/matt-edmondson))
+- Add github package support ([@matt-edmondson](https://github.com/matt-edmondson))
 - Initial commit ([@matt-edmondson](https://github.com/matt-edmondson))
 

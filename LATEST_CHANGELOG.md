@@ -1,7 +1,6 @@
-## v1.3.13 (patch)
+## v1.3.14-pre.1 (prerelease)
 
-Changes since v1.3.12:
+Changes since v1.3.13:
 
-- Normalize the well-formed text around a lone surrogate [patch] ([@Claude](https://github.com/Claude))
-- Match Greek final sigma and the micro sign ignoring case [patch] ([@Claude](https://github.com/Claude))
+- Bump Polyfill from 11.4.0 to 11.4.1 ([@dependabot[bot]](https://github.com/dependabot[bot]))
 
