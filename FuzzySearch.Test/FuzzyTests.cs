@@ -583,6 +583,46 @@ public class FuzzyTests
 		Assert.IsTrue(result, "Text that cannot be normalized should still be matched as it was given.");
 	}
 
+	[TestMethod]
+	public void Contains_DecomposedSubjectWithLoneSurrogate_StillMatchesPrecomposedPattern()
+	{
+		// Act
+		bool result = Fuzzy.Contains(DecomposedCafe + " \uD800", PrecomposedCafe);
+
+		// Assert
+		Assert.IsTrue(result, "An unrelated lone surrogate must not switch off normalization for the rest of the subject.");
+	}
+
+	[TestMethod]
+	public void Contains_WithScore_DecomposedSubjectWithLoneSurrogate_StillMatchesPrecomposedPattern()
+	{
+		// Act
+		bool result = Fuzzy.Contains(DecomposedCafe + " \uD800", PrecomposedCafe, out _);
+
+		// Assert
+		Assert.IsTrue(result, "The scoring overload must agree that the normalized text is present.");
+	}
+
+	[TestMethod]
+	public void Contains_PatternWithLoneSurrogate_IsStillNormalized()
+	{
+		// Act
+		bool result = Fuzzy.Contains(PrecomposedCafe + " \uDC00", DecomposedCafe + " \uDC00");
+
+		// Assert
+		Assert.IsTrue(result, "A lone surrogate in the pattern must not switch off normalization for the rest of it.");
+	}
+
+	[TestMethod]
+	public void NormalizeForComparison_LoneSurrogate_KeepsItInPlaceAndNormalizesAroundIt()
+	{
+		// Act
+		string result = Fuzzy.NormalizeForComparison(DecomposedCafe + "\uD800" + DecomposedCafe + "\uD83D\uDE01").ToString();
+
+		// Assert
+		Assert.AreEqual(PrecomposedCafe + "\uD800" + PrecomposedCafe + "\uD83D\uDE01", result);
+	}
+
 	#endregion
 
 	#region Surrogate Pair Tests
