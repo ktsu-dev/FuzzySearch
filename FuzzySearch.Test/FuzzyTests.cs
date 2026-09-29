@@ -860,4 +860,32 @@ public class FuzzyTests
 	}
 
 	#endregion
+
+	#region Repeated Letter Tests
+
+	private static int ScoreOf(string subject, string pattern)
+	{
+		Fuzzy.Contains(subject, pattern, out int score);
+		return score;
+	}
+
+	[TestMethod]
+	public void Score_RepeatedFirstLetter_ScoresBelowExactMatch()
+	{
+		Assert.IsGreaterThan(ScoreOf("aab", "ab"), ScoreOf("ab", "ab"), "A repeated letter should cost something.");
+	}
+
+	[TestMethod]
+	public void Score_ManyRepeatedLetters_ScoreBelowOneTrailingLetter()
+	{
+		Assert.IsGreaterThan(ScoreOf("aaaaaaaaaab", "ab"), ScoreOf("abx", "ab"), "Nine repeated letters should cost more than one trailing letter.");
+	}
+
+	[TestMethod]
+	public void Score_RepeatedLettersAfterSeparatorMatch_AreCharged()
+	{
+		Assert.IsGreaterThan(ScoreOf("a_bbbbbbbbbb", "ab"), ScoreOf("a_b", "ab"), "Repeated letters after a separator match should cost something.");
+	}
+
+	#endregion
 }
