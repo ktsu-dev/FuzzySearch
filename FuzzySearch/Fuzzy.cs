@@ -255,6 +255,12 @@ public static class Fuzzy
 					bestLetterLength = strCharLength;
 					bestLetterScore = newScore;
 				}
+				else
+				{
+					// A rematch that loses to the current best letter is skipped too, so charge it like one.
+					// Otherwise repeats of a well-scoring letter are free and can tie an exact match.
+					score += unmatchedLetterPenalty;
+				}
 
 				prevMatched = true;
 			}
