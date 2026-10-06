@@ -188,6 +188,12 @@ public static class Fuzzy
 		int bestLetterLength = 0;
 		int bestLetterScore = 0;
 
+		// Whether the best letter continues a run of consecutive matches. A later copy of that letter must not
+		// displace it: the copy would claim the run's adjacency bonus as its own, and the boundary bonus it earns
+		// would let trailing text outscore an exact match ("itemMap" over "item"). A best letter that ends no run,
+		// such as the lowercase 'm' in "FileSystemManager", can still give way to a better-placed copy.
+		bool bestLetterContinuesRun = false;
+
 		// The generic per-codepoint penalty below also charges the codepoints before the first match. That is
 		// refunded when the first match lands, so PenalizeNonPatternCharacters stays the sole — and therefore
 		// capped — source of prefix cost. Without the refund the two stack and maxPrefixPenalty bounds only one
@@ -243,7 +249,8 @@ public static class Fuzzy
 				}
 
 				// Update best letter in stringToSearch which may be for a "next" letter or a "rematch"
-				if (newScore >= bestLetterScore)
+				bool displacesRun = rematch && !nextMatch && bestLetterContinuesRun;
+				if (newScore >= bestLetterScore && !displacesRun)
 				{
 					// Apply penalty for now skipped letter
 					if (bestLetterIdx is not null)
@@ -254,6 +261,7 @@ public static class Fuzzy
 					bestLetterIdx = strIdx;
 					bestLetterLength = strCharLength;
 					bestLetterScore = newScore;
+					bestLetterContinuesRun = prevMatched;
 				}
 				else
 				{
