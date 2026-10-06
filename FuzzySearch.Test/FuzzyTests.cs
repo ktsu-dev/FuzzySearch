@@ -937,6 +937,16 @@ public class FuzzyTests
 		Assert.IsGreaterThan(ScoreOf("a_bbbbbbbbbb", "ab"), ScoreOf("a_b", "ab"), "Repeated letters after a separator match should cost something.");
 	}
 
+	[TestMethod]
+	[DataRow("item", "itemMap")]
+	[DataRow("list", "listTools")]
+	[DataRow("test", "testTest")]
+	[DataRow("ab", "ab_b")]
+	public void Score_ExactMatch_OutranksSameTextWithSuffix(string exact, string withSuffix)
+	{
+		Assert.IsGreaterThan(ScoreOf(withSuffix, exact), ScoreOf(exact, exact), $"'{exact}' should outrank '{withSuffix}' for pattern '{exact}'.");
+	}
+
 	#endregion
 
 	#region Separator Tests
