@@ -26,7 +26,7 @@ The library consists of a single static class `Fuzzy` in `FuzzySearch/Fuzzy.cs` 
 
 The scoring algorithm rewards:
 - Adjacent/consecutive character matches (`adjacentMatchBonus`)
-- Matches after separators like `_` or space (`matchAfterSeparatorBonus`)
+- Matches after separators: whitespace, `_`, `-`, `.`, `/` or `\` (`matchAfterSeparatorBonus`)
 - Matches at camelCase boundaries (`camelCaseMatchBonus`)
 
 And penalizes:

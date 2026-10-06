@@ -199,7 +199,7 @@ Both overloads take `ReadOnlySpan<char>`, so a `string` argument is passed strai
 | Rule | Effect |
 |------|--------|
 | Match adjacent to the previous match | `+5` |
-| Match after a `_` or space separator | `+10` |
+| Match after whitespace or a `_`, `-`, `.`, `/` or `\` separator | `+10` |
 | Match at a camelCase boundary | `+10` |
 | Each unmatched character | `-1` |
 | Unmatched characters before the first match | `-1` each, capped at `-5` |
