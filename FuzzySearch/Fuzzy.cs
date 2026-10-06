@@ -33,7 +33,10 @@ public static class Fuzzy
 	/// <summary>The bonus score awarded for adjacent character matches.</summary>
 	internal const int adjacentMatchBonus = 5;
 
-	/// <summary>The bonus score awarded for matches that occur after a separator character ('_' or space).</summary>
+	/// <summary>
+	/// The bonus score awarded for matches that occur after a separator character: whitespace, '_', '-', '.', '/' or
+	/// '\'.
+	/// </summary>
 	internal const int matchAfterSeparatorBonus = 10;
 
 	/// <summary>The bonus score awarded for matches that occur at camelCase boundaries.</summary>
@@ -283,7 +286,7 @@ public static class Fuzzy
 			bool isLetter = strLower != strUpper;
 
 			prevLower = strChar == strLower && isLetter;
-			prevSeparator = strChar is '_' or ' ';
+			prevSeparator = IsSeparator(strChar);
 
 			strIdx += strCharLength;
 			strCodepointIdx++;
@@ -298,6 +301,18 @@ public static class Fuzzy
 		wholePatternIsPresent = patternIdx == patternLength;
 		return score;
 	}
+
+	/// <summary>
+	/// Determines whether a character separates words, so that a match right after it earns
+	/// <see cref="matchAfterSeparatorBonus"/>.
+	/// </summary>
+	/// <param name="value">The character to test.</param>
+	/// <returns>
+	/// <c>true</c> for whitespace and for the identifier and path separators '_', '-', '.', '/' and '\'; otherwise,
+	/// <c>false</c>.
+	/// </returns>
+	internal static bool IsSeparator(char value) =>
+		char.IsWhiteSpace(value) || value is '_' or '-' or '.' or '/' or '\\';
 
 	/// <summary>
 	/// Gets the number of UTF-16 code units occupied by the Unicode codepoint starting at the given index.

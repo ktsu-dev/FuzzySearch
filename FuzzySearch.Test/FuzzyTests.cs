@@ -938,4 +938,56 @@ public class FuzzyTests
 	}
 
 	#endregion
+
+	#region Separator Tests
+
+	[TestMethod]
+	public void Score_PathSegmentMatch_OutranksMidWordMatch()
+	{
+		Assert.IsGreaterThan(ScoreOf("domain.cs", "main"), ScoreOf("src/main.cs", "main"), "A match starting a path segment should outrank one buried in a word.");
+	}
+
+	[TestMethod]
+	public void Score_HyphenatedWordMatch_OutranksJoinedWordMatch()
+	{
+		Assert.IsGreaterThan(ScoreOf("getlist", "list"), ScoreOf("get-list", "list"), "A match after a hyphen should outrank one in the middle of a word.");
+	}
+
+	[TestMethod]
+	[DataRow("src-main.cs")]
+	[DataRow("src.main.cs")]
+	[DataRow("src/main.cs")]
+	[DataRow("src\\main.cs")]
+	[DataRow("src\tmain.cs")]
+	[DataRow("src main.cs")]
+	public void Score_EverySeparator_EarnsTheSameBonusAsUnderscore(string subject)
+	{
+		Assert.AreEqual(ScoreOf("src_main.cs", "main"), ScoreOf(subject, "main"), $"'{subject}' should score like 'src_main.cs'.");
+	}
+
+	[TestMethod]
+	[DataRow('_')]
+	[DataRow('-')]
+	[DataRow('.')]
+	[DataRow('/')]
+	[DataRow('\\')]
+	[DataRow(' ')]
+	[DataRow('\t')]
+	[DataRow('\n')]
+	public void IsSeparator_SeparatorCharacters_ReturnTrue(char value)
+	{
+		Assert.IsTrue(Fuzzy.IsSeparator(value));
+	}
+
+	[TestMethod]
+	[DataRow('a')]
+	[DataRow('Z')]
+	[DataRow('0')]
+	[DataRow(':')]
+	public void IsSeparator_OtherCharacters_ReturnFalse(char value)
+	{
+		Assert.IsFalse(Fuzzy.IsSeparator(value));
+	}
+
+	#endregion
 }
