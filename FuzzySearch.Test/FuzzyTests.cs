@@ -747,6 +747,56 @@ public class FuzzyTests
 		Assert.AreEqual(asciiScore, emojiScore, "Two skipped supplementary-plane characters should cost the same as two skipped ASCII characters.");
 	}
 
+	// Supplementary-plane letters with a case mapping, each stored as a surrogate pair.
+	private const string DeseretCapitalLongI = "\U00010400";
+	private const string DeseretSmallLongI = "\U00010428";
+	private const string DeseretCapitalLongE = "\U00010401";
+	private const string AdlamCapitalAlif = "\U0001E900";
+	private const string AdlamSmallAlif = "\U0001E922";
+	private const string OsageCapitalAOsage = "\U000104B0\U000104B1";
+	private const string OsageSmallAOsage = "\U000104D8\U000104D9";
+
+	[TestMethod]
+	[DataRow(DeseretCapitalLongI, DeseretSmallLongI, DisplayName = "Deseret, uppercase subject")]
+	[DataRow(DeseretSmallLongI, DeseretCapitalLongI, DisplayName = "Deseret, lowercase subject")]
+	[DataRow(AdlamCapitalAlif, AdlamSmallAlif, DisplayName = "Adlam, uppercase subject")]
+	[DataRow(AdlamSmallAlif, AdlamCapitalAlif, DisplayName = "Adlam, lowercase subject")]
+	[DataRow(OsageCapitalAOsage, OsageSmallAOsage, DisplayName = "Osage, uppercase subject")]
+	public void Contains_SupplementaryPlaneLetterInOtherCase_ReturnsTrue(string subject, string pattern)
+	{
+		// Act
+		bool result = Fuzzy.Contains(subject, pattern);
+
+		// Assert
+		Assert.IsTrue(result, "Case is always ignored, including for letters outside the Basic Multilingual Plane.");
+	}
+
+	[TestMethod]
+	[DataRow(DeseretCapitalLongI, DeseretSmallLongI, DisplayName = "Deseret")]
+	[DataRow(AdlamCapitalAlif, AdlamSmallAlif, DisplayName = "Adlam")]
+	[DataRow(OsageCapitalAOsage, OsageSmallAOsage, DisplayName = "Osage")]
+	public void Contains_WithScore_SupplementaryPlaneLetterInOtherCase_ScoresLikeTheExactCaseMatch(string subject, string pattern)
+	{
+		// Act
+		bool exactCase = Fuzzy.Contains($"x{subject}y", subject, out int exactCaseScore);
+		bool otherCase = Fuzzy.Contains($"x{subject}y", pattern, out int otherCaseScore);
+
+		// Assert
+		Assert.IsTrue(exactCase, "The exact-case pattern should match.");
+		Assert.IsTrue(otherCase, "The other-case pattern should match.");
+		Assert.AreEqual(exactCaseScore, otherCaseScore, "Ignoring case must not change the score.");
+	}
+
+	[TestMethod]
+	public void Contains_SupplementaryPlaneLetter_DoesNotMatchADifferentLetterInOtherCase()
+	{
+		// Act
+		bool result = Fuzzy.Contains(DeseretCapitalLongE, DeseretSmallLongI);
+
+		// Assert
+		Assert.IsFalse(result, "Ignoring case must not make two different supplementary-plane letters equal.");
+	}
+
 	#endregion
 
 	#region Case Folding Tests

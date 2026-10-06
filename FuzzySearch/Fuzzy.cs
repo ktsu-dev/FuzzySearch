@@ -325,9 +325,9 @@ public static class Fuzzy
 	/// <returns><c>true</c> if the two codepoints are equal ignoring case; otherwise, <c>false</c>.</returns>
 	/// <remarks>
 	/// Codepoints of differing code-unit length are never equal, which is what stops an unpaired surrogate from
-	/// matching one half of an unrelated surrogate pair. Supplementary-plane codepoints are compared exactly:
-	/// <see cref="char.ToLowerInvariant(char)"/> operates on single UTF-16 code units and has no case mapping to apply
-	/// to a surrogate.
+	/// matching one half of an unrelated surrogate pair. A supplementary-plane codepoint is compared as a whole,
+	/// because <see cref="char.ToLowerInvariant(char)"/> has no case mapping for either half of a surrogate pair even
+	/// when the codepoint they encode has one, such as Deseret <c>U+10400</c> and <c>U+10428</c>.
 	/// </remarks>
 	internal static bool CodepointsEqual(ReadOnlySpan<char> left, int leftIndex, int leftLength, ReadOnlySpan<char> right, int rightIndex, int rightLength)
 	{
@@ -337,8 +337,42 @@ public static class Fuzzy
 		}
 
 		return leftLength == 2
-			? left[leftIndex] == right[rightIndex] && left[leftIndex + 1] == right[rightIndex + 1]
+			? SurrogatePairsEqualIgnoringCase(left.Slice(leftIndex, 2), right.Slice(rightIndex, 2))
 			: CharsEqualIgnoringCase(left[leftIndex], right[rightIndex]);
+	}
+
+	/// <summary>
+	/// Determines whether two supplementary-plane codepoints, each given as its surrogate pair, are the same,
+	/// ignoring case.
+	/// </summary>
+	/// <param name="left">The surrogate pair of the first codepoint.</param>
+	/// <param name="right">The surrogate pair of the second codepoint.</param>
+	/// <returns><c>true</c> if the codepoints are equal ignoring case; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// Matches on either the lowercase or the uppercase forms, for the same reason as
+	/// <see cref="CharsEqualIgnoringCase(char, char)"/>.
+	/// </remarks>
+	private static bool SurrogatePairsEqualIgnoringCase(ReadOnlySpan<char> left, ReadOnlySpan<char> right)
+	{
+		if (left.SequenceEqual(right))
+		{
+			return true;
+		}
+
+#if NETCOREAPP3_0_OR_GREATER
+		Rune leftRune = new(left[0], left[1]);
+		Rune rightRune = new(right[0], right[1]);
+
+		return Rune.ToLowerInvariant(leftRune) == Rune.ToLowerInvariant(rightRune)
+			|| Rune.ToUpperInvariant(leftRune) == Rune.ToUpperInvariant(rightRune);
+#else
+		// Rune is not available here, but the invariant string casing maps a surrogate pair as one codepoint.
+		string leftString = left.ToString();
+		string rightString = right.ToString();
+
+		return string.Equals(leftString.ToLowerInvariant(), rightString.ToLowerInvariant(), StringComparison.Ordinal)
+			|| string.Equals(leftString.ToUpperInvariant(), rightString.ToUpperInvariant(), StringComparison.Ordinal);
+#endif
 	}
 
 	/// <summary>
