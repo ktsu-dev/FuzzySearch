@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2026 ktsu-dev contributors
+﻿// Copyright (c) 2023-2026 ktsu-dev contributors
 
 [assembly: Parallelize(Scope = ExecutionScope.MethodLevel)]
 
@@ -467,6 +467,41 @@ public class FuzzyTests
 
 		Assert.AreEqual(atCap, pastCap, "A prefix beyond the cap threshold must not cost any more than one at it.");
 		Assert.AreEqual(atCap, wellPastCap, "The prefix penalty must stay flat however long the prefix grows.");
+	}
+
+	[TestMethod]
+	[DataRow(5)]
+	[DataRow(20)]
+	[DataRow(100)]
+	public void CalculateScore_ReplacedFirstLetter_KeepsThePrefixPenaltyCapped(int gapLength)
+	{
+		// Arrange: both subjects end in the same "_ab" alignment. The second also starts with a stray copy of the
+		// pattern's first letter, which is provisionally matched and then replaced by the better-placed "a" in
+		// "_ab", so everything before that "a" is prefix in both.
+		string gap = new('x', gapLength);
+		string pattern = "ab";
+
+		// Act
+		int withoutStrayLetter = Fuzzy.CalculateScore(gap + "_ab", pattern, out bool withoutPresent);
+		int withStrayLetter = Fuzzy.CalculateScore("a" + gap + "_ab", pattern, out bool withPresent);
+
+		// Assert
+		Assert.IsTrue(withoutPresent, "The pattern is present.");
+		Assert.IsTrue(withPresent, "The pattern is present.");
+		Assert.AreEqual(withoutStrayLetter, withStrayLetter,
+			"A replaced first letter is prefix, so it must cost no more than the capped prefix penalty.");
+	}
+
+	[TestMethod]
+	public void Score_StrayEarlyFirstLetter_DoesNotSinkAPathMatch()
+	{
+		// Act: the same "_test" match, with and without a 't' early in the path
+		int withStrayLetter = Fuzzy.CalculateScore("tools/build/scripts/unit_test", "test", out _);
+		int withoutStrayLetter = Fuzzy.CalculateScore("docs/build/scripts/unit_test", "test", out _);
+
+		// Assert
+		Assert.AreEqual(withoutStrayLetter, withStrayLetter,
+			"An early copy of the first letter that the match moves past must not cost more than the prefix cap.");
 	}
 
 	[TestMethod]
