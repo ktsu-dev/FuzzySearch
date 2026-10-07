@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2026 ktsu-dev contributors
+﻿// Copyright (c) 2023-2026 ktsu-dev contributors
 
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -203,6 +203,15 @@ public static class Fuzzy
 		// of them, leaving the score falling without bound as the prefix grows.
 		int prefixPenaltyCharged = 0;
 
+		// While the best letter is still the first pattern codepoint and has not been committed, a better-placed
+		// copy of it can take its place, and then everything before the copy is prefix too. These record what was
+		// charged since the first match landed — the capped prefix penalty and the uncapped per-codepoint costs
+		// after it — so a replacement can hand them back and charge the longer prefix through the cap instead.
+		// Otherwise a stray early copy of the first letter puts the whole gap outside the cap.
+		bool firstLetterProvisional = false;
+		int provisionalPrefixPenalty = 0;
+		int provisionalCharges = 0;
+
 		// Loop over codepoints in subject
 		while (strIdx != strLength)
 		{
@@ -227,6 +236,7 @@ public static class Fuzzy
 				bestLetterIdx = null;
 				bestLetterLength = 0;
 				bestLetterScore = 0;
+				firstLetterProvisional = false;
 			}
 
 			if (nextMatch || rematch)
@@ -239,9 +249,13 @@ public static class Fuzzy
 					// so that the capped penalty applied next is all the prefix is charged.
 					score -= prefixPenaltyCharged;
 					prefixPenaltyCharged = 0;
-				}
 
-				score = PenalizeNonPatternCharacters(score, patternIdx, strCodepointIdx);
+					int scoreBeforePrefix = score;
+					score = PenalizeNonPatternCharacters(score, patternIdx, strCodepointIdx);
+					firstLetterProvisional = true;
+					provisionalPrefixPenalty = score - scoreBeforePrefix;
+					provisionalCharges = 0;
+				}
 
 				newScore = ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, newScore);
 
@@ -255,10 +269,21 @@ public static class Fuzzy
 				bool displacesRun = rematch && !nextMatch && bestLetterContinuesRun;
 				if (newScore >= bestLetterScore && !displacesRun)
 				{
-					// Apply penalty for now skipped letter
-					if (bestLetterIdx is not null)
+					if (ReplacesProvisionalFirstLetter(firstLetterProvisional, rematch, nextMatch))
 					{
+						// A copy of the first letter replaces it, so the superseded letter and everything up to
+						// here is prefix: refund what was charged since the first match and charge the cap again.
+						score -= provisionalPrefixPenalty + provisionalCharges;
+						int scoreBeforePrefix = score;
+						score = PenalizeNonPatternCharacters(score, 0, strCodepointIdx);
+						provisionalPrefixPenalty = score - scoreBeforePrefix;
+						provisionalCharges = 0;
+					}
+					else if (bestLetterIdx is not null)
+					{
+						// Apply penalty for now skipped letter
 						score += unmatchedLetterPenalty;
+						ChargeProvisional(firstLetterProvisional, ref provisionalCharges);
 					}
 
 					bestLetterIdx = strIdx;
@@ -271,6 +296,7 @@ public static class Fuzzy
 					// A rematch that loses to the current best letter is skipped too, so charge it like one.
 					// Otherwise repeats of a well-scoring letter are free and can tie an exact match.
 					score += unmatchedLetterPenalty;
+					ChargeProvisional(firstLetterProvisional, ref provisionalCharges);
 				}
 
 				prevMatched = true;
@@ -287,6 +313,7 @@ public static class Fuzzy
 					prefixPenaltyCharged += unmatchedLetterPenalty;
 				}
 
+				ChargeProvisional(firstLetterProvisional, ref provisionalCharges);
 				prevMatched = false;
 			}
 
@@ -308,6 +335,31 @@ public static class Fuzzy
 
 		wholePatternIsPresent = patternIdx == patternLength;
 		return score;
+	}
+
+	/// <summary>
+	/// Determines whether a match is a copy of the uncommitted first pattern codepoint taking that codepoint's
+	/// place, rather than a match of the next pattern codepoint.
+	/// </summary>
+	/// <param name="firstLetterProvisional">Whether the best letter is the uncommitted first pattern codepoint.</param>
+	/// <param name="rematch">Whether the subject codepoint repeats the best letter.</param>
+	/// <param name="nextMatch">Whether the subject codepoint matches the next pattern codepoint.</param>
+	/// <returns><c>true</c> if the match replaces the provisional first letter; otherwise, <c>false</c>.</returns>
+	private static bool ReplacesProvisionalFirstLetter(bool firstLetterProvisional, bool rematch, bool nextMatch) =>
+		firstLetterProvisional && rematch && !nextMatch;
+
+	/// <summary>
+	/// Records a per-codepoint charge made while the first matched letter may still be replaced, so that a
+	/// replacement can refund it.
+	/// </summary>
+	/// <param name="firstLetterProvisional">Whether the best letter is the uncommitted first pattern codepoint.</param>
+	/// <param name="provisionalCharges">The running total of such charges.</param>
+	private static void ChargeProvisional(bool firstLetterProvisional, ref int provisionalCharges)
+	{
+		if (firstLetterProvisional)
+		{
+			provisionalCharges += unmatchedLetterPenalty;
+		}
 	}
 
 	/// <summary>
