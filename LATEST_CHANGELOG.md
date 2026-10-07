@@ -1,6 +1,4 @@
-## v1.4.1 (patch)
+## v1.4.1
 
-Changes since v1.4.0:
-
-- Keep the prefix penalty capped when a later copy replaces the first letter [patch] ([@Claude](https://github.com/Claude))
+No significant changes detected since v1.4.1.
 
