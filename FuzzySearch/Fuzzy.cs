@@ -267,6 +267,7 @@ public static class Fuzzy
 
 				// Update best letter in stringToSearch which may be for a "next" letter or a "rematch"
 				bool displacesRun = rematch && !nextMatch && bestLetterContinuesRun;
+				bool continuesRun = ContinuesRun(prevMatched, rematch, nextMatch, bestLetterIdx, bestLetterLength, strIdx);
 				if (newScore >= bestLetterScore && !displacesRun)
 				{
 					if (ReplacesProvisionalFirstLetter(firstLetterProvisional, rematch, nextMatch))
@@ -289,7 +290,7 @@ public static class Fuzzy
 					bestLetterIdx = strIdx;
 					bestLetterLength = strCharLength;
 					bestLetterScore = newScore;
-					bestLetterContinuesRun = prevMatched;
+					bestLetterContinuesRun = continuesRun;
 				}
 				else
 				{
@@ -347,6 +348,24 @@ public static class Fuzzy
 	/// <returns><c>true</c> if the match replaces the provisional first letter; otherwise, <c>false</c>.</returns>
 	private static bool ReplacesProvisionalFirstLetter(bool firstLetterProvisional, bool rematch, bool nextMatch) =>
 		firstLetterProvisional && rematch && !nextMatch;
+
+	/// <summary>
+	/// Determines whether a match continues a run of matched codepoints. Following the copy of the best letter that
+	/// it replaces does not count: that copy is no longer matched, and counting it would let the doubled letter in
+	/// "address" stop the camelCase copy in "Space" from displacing it.
+	/// </summary>
+	/// <param name="prevMatched">Whether the previous subject codepoint matched.</param>
+	/// <param name="rematch">Whether the subject codepoint repeats the best letter.</param>
+	/// <param name="nextMatch">Whether the subject codepoint matches the next pattern codepoint.</param>
+	/// <param name="bestLetterIdx">The index of the best letter in the subject, if there is one.</param>
+	/// <param name="bestLetterLength">The length of the best letter in code units.</param>
+	/// <param name="strIdx">The index of the subject codepoint being matched.</param>
+	/// <returns><c>true</c> if the match continues a run; otherwise, <c>false</c>.</returns>
+	private static bool ContinuesRun(bool prevMatched, bool rematch, bool nextMatch, int? bestLetterIdx, int bestLetterLength, int strIdx)
+	{
+		bool followsOwnCopy = rematch && !nextMatch && bestLetterIdx is not null && bestLetterIdx.Value + bestLetterLength == strIdx;
+		return prevMatched && !followsOwnCopy;
+	}
 
 	/// <summary>
 	/// Records a per-codepoint charge made while the first matched letter may still be replaced, so that a

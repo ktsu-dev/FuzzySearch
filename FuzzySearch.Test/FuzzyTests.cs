@@ -982,6 +982,22 @@ public class FuzzyTests
 		Assert.IsGreaterThan(ScoreOf(withSuffix, exact), ScoreOf(exact, exact), $"'{exact}' should outrank '{withSuffix}' for pattern '{exact}'.");
 	}
 
+	[TestMethod]
+	[DataRow("sp", "AddressSpace", "AddresSpace")]
+	[DataRow("sel", "classSelector", "clasSelector")]
+	[DataRow("se", "cross_section", "cros_section")]
+	public void Score_DoubledLetterBeforeWordBoundary_DoesNotBlockBoundaryBonus(string pattern, string real, string misspelt)
+	{
+		// The real word has one more letter than the misspelling, so it may trail by that letter's penalty but no more.
+		Assert.IsGreaterThanOrEqualTo(ScoreOf(misspelt, pattern) - 1, ScoreOf(real, pattern), $"'{real}' should score about as well as '{misspelt}' for pattern '{pattern}'.");
+	}
+
+	[TestMethod]
+	public void Score_InsertingJunkBeforeABoundaryCopy_DoesNotRaiseTheScore()
+	{
+		Assert.IsGreaterThanOrEqualTo(ScoreOf("ba1aA", "a"), ScoreOf("baaA", "a"), "Inserting a junk character should not raise the score.");
+	}
+
 	#endregion
 
 	#region Separator Tests
