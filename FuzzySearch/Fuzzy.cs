@@ -491,8 +491,8 @@ public static class Fuzzy
 		}
 		catch (ArgumentException)
 		{
-			// Text that is not well-formed Unicode (for example a lone surrogate) cannot be normalized as a
-			// whole. Normalize the well-formed text around it instead, so one stray surrogate does not
+			// Text that is not well-formed Unicode (for example a lone surrogate, or U+FFFE) cannot be normalized
+			// as a whole. Normalize the well-formed text around it instead, so one stray surrogate does not
 			// switch off canonical equivalence for the rest of the string.
 			return NormalizeWellFormedRuns(value);
 		}
@@ -500,13 +500,15 @@ public static class Fuzzy
 
 	/// <summary>
 	/// Normalizes each well-formed run of <paramref name="value"/> to <see cref="NormalizationForm.FormC"/>, leaving
-	/// every unpaired surrogate where it was.
+	/// every unpaired surrogate and every U+FFFE where it was.
 	/// </summary>
-	/// <param name="value">Text containing at least one unpaired surrogate.</param>
+	/// <param name="value">Text that could not be normalized as a whole.</param>
 	/// <returns>The text with its well-formed runs normalized.</returns>
 	/// <remarks>
 	/// An unpaired surrogate has no canonical composition with its neighbours, so treating it as a run boundary gives
-	/// the same result as normalizing the valid text on either side of it.
+	/// the same result as normalizing the valid text on either side of it. U+FFFE, which a byte-swapped BOM decodes
+	/// to, is the one other code point normalization rejects, and is treated the same way. A run that still cannot be
+	/// normalized is kept as given, so the method never throws.
 	/// </remarks>
 	private static ReadOnlySpan<char> NormalizeWellFormedRuns(ReadOnlySpan<char> value)
 	{
@@ -516,7 +518,7 @@ public static class Fuzzy
 		for (int i = 0; i < value.Length; i++)
 		{
 			char c = value[i];
-			if (!char.IsSurrogate(c))
+			if (!char.IsSurrogate(c) && c != '\uFFFE')
 			{
 				continue;
 			}
@@ -537,9 +539,19 @@ public static class Fuzzy
 
 		static void AppendNormalized(StringBuilder builder, ReadOnlySpan<char> run)
 		{
-			if (!run.IsEmpty)
+			if (run.IsEmpty)
 			{
-				builder.Append(run.ToString().Normalize(NormalizationForm.FormC));
+				return;
+			}
+
+			string text = run.ToString();
+			try
+			{
+				builder.Append(text.Normalize(NormalizationForm.FormC));
+			}
+			catch (ArgumentException)
+			{
+				builder.Append(text);
 			}
 		}
 	}

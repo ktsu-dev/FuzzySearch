@@ -619,6 +619,32 @@ public class FuzzyTests
 	}
 
 	[TestMethod]
+	[DataRow("a\uFFFEb", "ab")]
+	[DataRow("abc", "\uFFFE")]
+	[DataRow("caf\u00E9\uFFFE", "caf\u00E9")]
+	public void Contains_ByteSwappedBom_DoesNotThrow(string subject, string pattern)
+	{
+		// Act: U+FFFE is what a byte-swapped BOM decodes to, and string.Normalize rejects it.
+		bool result = Fuzzy.Contains(subject, pattern);
+		bool scored = Fuzzy.Contains(subject, pattern, out _);
+
+		// Assert
+		Assert.AreEqual(result, scored, "Both overloads must agree.");
+	}
+
+	[TestMethod]
+	public void Contains_DecomposedSubjectWithByteSwappedBom_StillMatchesPrecomposedPattern()
+	{
+		// Act
+		bool result = Fuzzy.Contains(DecomposedCafe + "\uFFFE", PrecomposedCafe);
+		bool scored = Fuzzy.Contains(DecomposedCafe + "\uFFFE", PrecomposedCafe, out _);
+
+		// Assert
+		Assert.IsTrue(result, "A U+FFFE must not switch off normalization for the rest of the subject.");
+		Assert.IsTrue(scored, "The scoring overload must agree that the normalized text is present.");
+	}
+
+	[TestMethod]
 	public void Contains_DecomposedSubjectWithLoneSurrogate_StillMatchesPrecomposedPattern()
 	{
 		// Act
