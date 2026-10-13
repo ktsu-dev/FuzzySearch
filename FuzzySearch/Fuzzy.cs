@@ -485,16 +485,31 @@ public static class Fuzzy
 			return value;
 		}
 
+		// Text that is not well-formed Unicode (for example a lone surrogate, or U+FFFE) cannot be normalized
+		// as a whole. Normalize the well-formed text around it instead, so one stray surrogate does not
+		// switch off canonical equivalence for the rest of the string.
+		return TryNormalize(value.ToString(), out string normalized)
+			? normalized.AsSpan()
+			: NormalizeWellFormedRuns(value);
+	}
+
+	/// <summary>
+	/// Normalizes <paramref name="text"/> to <see cref="NormalizationForm.FormC"/>, or reports that it cannot be.
+	/// </summary>
+	/// <param name="text">The text to normalize.</param>
+	/// <param name="normalized">The normalized text, or <paramref name="text"/> itself when it cannot be normalized.</param>
+	/// <returns><see langword="true"/> if the text was normalized; otherwise <see langword="false"/>.</returns>
+	private static bool TryNormalize(string text, out string normalized)
+	{
 		try
 		{
-			return value.ToString().Normalize(NormalizationForm.FormC).AsSpan();
+			normalized = text.Normalize(NormalizationForm.FormC);
+			return true;
 		}
 		catch (ArgumentException)
 		{
-			// Text that is not well-formed Unicode (for example a lone surrogate, or U+FFFE) cannot be normalized
-			// as a whole. Normalize the well-formed text around it instead, so one stray surrogate does not
-			// switch off canonical equivalence for the rest of the string.
-			return NormalizeWellFormedRuns(value);
+			normalized = text;
+			return false;
 		}
 	}
 
@@ -544,15 +559,8 @@ public static class Fuzzy
 				return;
 			}
 
-			string text = run.ToString();
-			try
-			{
-				builder.Append(text.Normalize(NormalizationForm.FormC));
-			}
-			catch (ArgumentException)
-			{
-				builder.Append(text);
-			}
+			TryNormalize(run.ToString(), out string normalized);
+			builder.Append(normalized);
 		}
 	}
 
