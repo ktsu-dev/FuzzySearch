@@ -1,6 +1,6 @@
-## v1.4.2-pre.2 (prerelease)
+## v1.4.2 (patch)
 
-Changes since v1.4.2-pre.1:
+Changes since v1.4.1:
 
-- Bump Polyfill from 11.4.3 to 11.4.4 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Let a boundary copy displace a letter that only follows its own copy [patch] ([@Claude](https://github.com/Claude))
 

@@ -1,3 +1,9 @@
+## v1.4.2 (patch)
+
+Changes since v1.4.1:
+
+- Let a boundary copy displace a letter that only follows its own copy [patch] ([@Claude](https://github.com/Claude))
+
 ## v1.4.2-pre.2 (prerelease)
 
 Changes since v1.4.2-pre.1:
