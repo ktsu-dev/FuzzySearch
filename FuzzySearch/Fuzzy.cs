@@ -219,11 +219,11 @@ public static class Fuzzy
 			int patternCharLength = hasPatternChar ? CodepointLengthAt(pattern, patternIdx) : 0;
 			int strCharLength = CodepointLengthAt(subject, strIdx);
 
-			// The leading code unit carries the case and separator properties of the codepoint: a surrogate is
-			// caseless and is never a separator, which is exactly how a supplementary-plane codepoint should behave.
+			// Case is read from the whole codepoint, so a supplementary-plane capital such as Deseret U+10400 marks a
+			// camelCase boundary like a basic-plane one. The leading code unit is enough to tell a separator, because
+			// every separator is a basic-plane character and a surrogate never is one.
 			char strChar = subject[strIdx];
-			char strLower = char.ToLowerInvariant(strChar);
-			char strUpper = char.ToUpperInvariant(strChar);
+			GetLetterCase(subject, strIdx, strCharLength, out bool strIsUpper, out bool strIsLower);
 
 			bool nextMatch = hasPatternChar && CodepointsEqual(pattern, patternIdx, patternCharLength, subject, strIdx, strCharLength);
 			bool rematch = bestLetterIdx is not null && CodepointsEqual(subject, bestLetterIdx.Value, bestLetterLength, subject, strIdx, strCharLength);
@@ -257,7 +257,7 @@ public static class Fuzzy
 					provisionalCharges = 0;
 				}
 
-				newScore = ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, newScore);
+				newScore = ApplyBonuses(prevMatched, prevLower, prevSeparator, strIsUpper, newScore);
 
 				// Update pattern index IF the next pattern codepoint was matched
 				if (nextMatch)
@@ -318,10 +318,7 @@ public static class Fuzzy
 				prevMatched = false;
 			}
 
-			// "clever" isLetter check.
-			bool isLetter = strLower != strUpper;
-
-			prevLower = strChar == strLower && isLetter;
+			prevLower = strIsLower;
 			prevSeparator = IsSeparator(strChar);
 
 			strIdx += strCharLength;
@@ -470,6 +467,53 @@ public static class Fuzzy
 	}
 
 	/// <summary>
+	/// Determines whether the codepoint at the given index is an uppercase or a lowercase letter.
+	/// </summary>
+	/// <param name="value">The span holding the codepoint.</param>
+	/// <param name="index">The index of the first code unit of the codepoint.</param>
+	/// <param name="length">The length of the codepoint in code units.</param>
+	/// <param name="isUpper">When this method returns, whether the codepoint is an uppercase letter.</param>
+	/// <param name="isLower">When this method returns, whether the codepoint is a lowercase letter.</param>
+	/// <remarks>
+	/// A codepoint counts as a letter only when its lowercase and uppercase forms differ, so caseless characters are
+	/// neither. A supplementary-plane codepoint is cased as a whole, because <see cref="char.ToLowerInvariant(char)"/>
+	/// has no case mapping for either half of a surrogate pair.
+	/// </remarks>
+	internal static void GetLetterCase(ReadOnlySpan<char> value, int index, int length, out bool isUpper, out bool isLower)
+	{
+		if (length == 2)
+		{
+#if NETCOREAPP3_0_OR_GREATER
+			Rune rune = new(value[index], value[index + 1]);
+			Rune runeLower = Rune.ToLowerInvariant(rune);
+			Rune runeUpper = Rune.ToUpperInvariant(rune);
+			bool runeIsCased = runeLower != runeUpper;
+
+			isUpper = runeIsCased && rune == runeUpper;
+			isLower = runeIsCased && rune == runeLower;
+#else
+			// Rune is not available here, but the invariant string casing maps a surrogate pair as one codepoint.
+			string pair = value.Slice(index, 2).ToString();
+			string pairLower = pair.ToLowerInvariant();
+			string pairUpper = pair.ToUpperInvariant();
+			bool pairIsCased = !string.Equals(pairLower, pairUpper, StringComparison.Ordinal);
+
+			isUpper = pairIsCased && string.Equals(pair, pairUpper, StringComparison.Ordinal);
+			isLower = pairIsCased && string.Equals(pair, pairLower, StringComparison.Ordinal);
+#endif
+			return;
+		}
+
+		char c = value[index];
+		char lower = char.ToLowerInvariant(c);
+		char upper = char.ToUpperInvariant(c);
+		bool isCased = lower != upper;
+
+		isUpper = isCased && c == upper;
+		isLower = isCased && c == lower;
+	}
+
+	/// <summary>
 	/// Determines whether two characters are the same, ignoring case.
 	/// </summary>
 	/// <param name="left">The first character.</param>
@@ -587,12 +631,10 @@ public static class Fuzzy
 	/// <param name="prevMatched">Whether the previous character was a match.</param>
 	/// <param name="prevLower">Whether the previous character was lowercase.</param>
 	/// <param name="prevSeparator">Whether the previous character was a separator.</param>
-	/// <param name="strChar">The current character being considered.</param>
-	/// <param name="strLower">The lowercase form of the current character.</param>
-	/// <param name="strUpper">The uppercase form of the current character.</param>
+	/// <param name="isUpper">Whether the current codepoint is an uppercase letter.</param>
 	/// <param name="newScore">The current score to apply bonuses to.</param>
 	/// <returns>The updated score after applying any applicable bonuses.</returns>
-	internal static int ApplyBonuses(bool prevMatched, bool prevLower, bool prevSeparator, char strChar, char strLower, char strUpper, int newScore)
+	internal static int ApplyBonuses(bool prevMatched, bool prevLower, bool prevSeparator, bool isUpper, int newScore)
 	{
 		// Apply bonus for consecutive bonuses
 		if (prevMatched)
@@ -606,8 +648,8 @@ public static class Fuzzy
 			newScore += matchAfterSeparatorBonus;
 		}
 
-		// Apply bonus across camel case boundaries. Includes "clever" isLetter check.
-		if (prevLower && strChar == strUpper && strLower != strUpper)
+		// Apply bonus across camel case boundaries
+		if (prevLower && isUpper)
 		{
 			newScore += camelCaseMatchBonus;
 		}

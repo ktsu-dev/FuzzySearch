@@ -245,13 +245,11 @@ public class FuzzyTests
 		bool prevMatched = true;
 		bool prevLower = false;
 		bool prevSeparator = false;
-		char strChar = 'a';
-		char strLower = 'a';
-		char strUpper = 'A';
+		bool isUpper = false;
 		int initialScore = 0;
 
 		// Act
-		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
+		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, isUpper, initialScore);
 
 		// Assert
 		Assert.AreEqual(Fuzzy.adjacentMatchBonus, result);
@@ -264,13 +262,11 @@ public class FuzzyTests
 		bool prevMatched = false;
 		bool prevLower = false;
 		bool prevSeparator = true;
-		char strChar = 'a';
-		char strLower = 'a';
-		char strUpper = 'A';
+		bool isUpper = false;
 		int initialScore = 0;
 
 		// Act
-		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
+		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, isUpper, initialScore);
 
 		// Assert
 		Assert.AreEqual(Fuzzy.matchAfterSeparatorBonus, result);
@@ -283,13 +279,11 @@ public class FuzzyTests
 		bool prevMatched = false;
 		bool prevLower = true;
 		bool prevSeparator = false;
-		char strChar = 'A';  // Capital letter
-		char strLower = 'a';
-		char strUpper = 'A';
+		bool isUpper = true;
 		int initialScore = 0;
 
 		// Act
-		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
+		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, isUpper, initialScore);
 
 		// Assert
 		Assert.AreEqual(Fuzzy.camelCaseMatchBonus, result);
@@ -302,14 +296,12 @@ public class FuzzyTests
 		bool prevMatched = true;
 		bool prevLower = true;
 		bool prevSeparator = true;
-		char strChar = 'A';  // Capital letter
-		char strLower = 'a';
-		char strUpper = 'A';
+		bool isUpper = true;
 		int initialScore = 0;
 		int expectedBonus = Fuzzy.adjacentMatchBonus + Fuzzy.matchAfterSeparatorBonus + Fuzzy.camelCaseMatchBonus;
 
 		// Act
-		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
+		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, isUpper, initialScore);
 
 		// Assert
 		Assert.AreEqual(expectedBonus, result);
@@ -322,13 +314,11 @@ public class FuzzyTests
 		bool prevMatched = false;
 		bool prevLower = false;
 		bool prevSeparator = false;
-		char strChar = 'a';
-		char strLower = 'a';
-		char strUpper = 'A';
+		bool isUpper = false;
 		int initialScore = 5;
 
 		// Act
-		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, strChar, strLower, strUpper, initialScore);
+		int result = Fuzzy.ApplyBonuses(prevMatched, prevLower, prevSeparator, isUpper, initialScore);
 
 		// Assert
 		Assert.AreEqual(initialScore, result);
@@ -786,6 +776,7 @@ public class FuzzyTests
 	private const string DeseretCapitalLongI = "\U00010400";
 	private const string DeseretSmallLongI = "\U00010428";
 	private const string DeseretCapitalLongE = "\U00010401";
+	private const string DeseretSmallLongE = "\U00010429";
 	private const string AdlamCapitalAlif = "\U0001E900";
 	private const string AdlamSmallAlif = "\U0001E922";
 	private const string OsageCapitalAOsage = "\U000104B0\U000104B1";
@@ -830,6 +821,41 @@ public class FuzzyTests
 
 		// Assert
 		Assert.IsFalse(result, "Ignoring case must not make two different supplementary-plane letters equal.");
+	}
+
+	[TestMethod]
+	[DataRow("ab" + DeseretCapitalLongI, DeseretSmallLongI, "abC", DisplayName = "Deseret capital, lowercase pattern")]
+	[DataRow("ab" + DeseretCapitalLongI, DeseretCapitalLongI, "abC", DisplayName = "Deseret capital, uppercase pattern")]
+	[DataRow("ab\U000104B0", "\U000104B0", "abC", DisplayName = "Osage capital")]
+	[DataRow(DeseretSmallLongE + DeseretSmallLongE + DeseretCapitalLongI, DeseretCapitalLongI, "abC", DisplayName = "Deseret lower, lower, upper")]
+	[DataRow(DeseretSmallLongE + "C", "c", "aC", DisplayName = "Deseret lowercase before a basic-plane capital")]
+	public void Contains_WithScore_SupplementaryPlaneCamelCaseBoundary_ScoresLikeTheBasicPlaneBoundary(string subject, string pattern, string basicPlaneSubject)
+	{
+		// Arrange
+		bool basicPlane = Fuzzy.Contains(basicPlaneSubject, "c", out int basicPlaneScore);
+
+		// Act
+		bool result = Fuzzy.Contains(subject, pattern, out int score);
+
+		// Assert
+		Assert.IsTrue(basicPlane, "The basic-plane pattern should match.");
+		Assert.IsTrue(result, "The pattern should match.");
+		Assert.AreEqual(basicPlaneScore, score, "A supplementary-plane camelCase boundary must earn the same bonus as a basic-plane one.");
+	}
+
+	[TestMethod]
+	public void Contains_WithScore_InsideASupplementaryPlaneCapitalRun_EarnsNoCamelCaseBonus()
+	{
+		// Arrange
+		bool basicPlane = Fuzzy.Contains("ABC", "c", out int basicPlaneScore);
+
+		// Act
+		bool result = Fuzzy.Contains(DeseretCapitalLongE + DeseretCapitalLongE + DeseretCapitalLongI, DeseretSmallLongI, out int score);
+
+		// Assert
+		Assert.IsTrue(basicPlane, "The basic-plane pattern should match.");
+		Assert.IsTrue(result, "The pattern should match.");
+		Assert.AreEqual(basicPlaneScore, score, "A capital following capitals is not a camelCase boundary.");
 	}
 
 	#endregion
