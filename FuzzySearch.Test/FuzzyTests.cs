@@ -1019,6 +1019,23 @@ public class FuzzyTests
 	}
 
 	[TestMethod]
+	[DataRow("EditItemManager", "EditItxmManager", "em")]
+	[DataRow("axaB", "axxB", "ab")]
+	[DataRow("Baxab", "Baxxb", "bab")]
+	public void Score_LosingRematch_DoesNotGrantNextLetterAdjacency(string withLosingRematch, string withoutRematch, string pattern)
+	{
+		// A copy of the matched letter that loses the rematch is charged as skipped, so it must also count as
+		// skipped for the next codepoint: no adjacency bonus, and no run that blocks a better-placed copy (#130).
+		Assert.AreEqual(ScoreOf(withoutRematch, pattern), ScoreOf(withLosingRematch, pattern), $"'{withLosingRematch}' should score like '{withoutRematch}'.");
+	}
+
+	[TestMethod]
+	public void Score_LosingRematch_DoesNotRaiseScore()
+	{
+		Assert.IsLessThanOrEqualTo(ScoreOf("axB", "ab"), ScoreOf("axaB", "ab"), "An extra unmatched copy of the first letter should not raise the score.");
+	}
+
+	[TestMethod]
 	public void Score_RepeatedLettersAfterSeparatorMatch_AreCharged()
 	{
 		Assert.IsGreaterThan(ScoreOf("a_bbbbbbbbbb", "ab"), ScoreOf("a_b", "ab"), "Repeated letters after a separator match should cost something.");

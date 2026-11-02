@@ -243,6 +243,10 @@ public static class Fuzzy
 			{
 				int newScore = 0;
 
+				// Whether this codepoint ends up matched. A rematch that loses to the best letter is skipped, so the
+				// codepoint after it must not count as adjacent to a match or as continuing a run.
+				bool matched = true;
+
 				if (patternIdx == 0)
 				{
 					// First pattern codepoint matched: hand back the uncapped per-codepoint cost of the prefix,
@@ -298,9 +302,10 @@ public static class Fuzzy
 					// Otherwise repeats of a well-scoring letter are free and can tie an exact match.
 					score += unmatchedLetterPenalty;
 					ChargeProvisional(firstLetterProvisional, ref provisionalCharges);
+					matched = false;
 				}
 
-				prevMatched = true;
+				prevMatched = matched;
 			}
 			else
 			{
