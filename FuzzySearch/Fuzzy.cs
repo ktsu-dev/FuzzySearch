@@ -39,7 +39,10 @@ public static class Fuzzy
 	/// </summary>
 	internal const int matchAfterSeparatorBonus = 10;
 
-	/// <summary>The bonus score awarded for matches that occur at camelCase boundaries.</summary>
+	/// <summary>
+	/// The bonus score awarded for matches that occur at camelCase boundaries: an uppercase letter after a lowercase
+	/// letter or a digit, as in "fooBar" or "Int32Converter".
+	/// </summary>
 	internal const int camelCaseMatchBonus = 10;
 
 	/// <summary>The penalty for each unmatched character at the beginning of the string.</summary>
@@ -184,6 +187,7 @@ public static class Fuzzy
 		int strCodepointIdx = 0;
 		bool prevMatched = false;
 		bool prevLower = false;
+		bool prevDigit = false;
 		bool prevSeparator = true; // true if first letter match gets separator bonus
 
 		// Use "best" matched codepoint if multiple subject codepoints match the pattern
@@ -261,7 +265,9 @@ public static class Fuzzy
 					provisionalCharges = 0;
 				}
 
-				newScore = ApplyBonuses(prevMatched, prevLower, prevSeparator, strIsUpper, newScore);
+				// A capital after a digit starts a word just as one after a lowercase letter does: the "C" of
+				// "Int32Converter" or the "D" of "Vector3Distance".
+				newScore = ApplyBonuses(prevMatched, prevLower || prevDigit, prevSeparator, strIsUpper, newScore);
 
 				// Update pattern index IF the next pattern codepoint was matched
 				if (nextMatch)
@@ -324,6 +330,7 @@ public static class Fuzzy
 			}
 
 			prevLower = strIsLower;
+			prevDigit = char.IsDigit(strChar);
 			prevSeparator = IsSeparator(strChar);
 
 			strIdx += strCharLength;
@@ -654,7 +661,10 @@ public static class Fuzzy
 	/// Applies bonus scores for various match characteristics.
 	/// </summary>
 	/// <param name="prevMatched">Whether the previous character was a match.</param>
-	/// <param name="prevLower">Whether the previous character was lowercase.</param>
+	/// <param name="prevLower">
+	/// Whether the previous character ends a word that an uppercase letter can follow at a camelCase boundary: a
+	/// lowercase letter or a digit.
+	/// </param>
 	/// <param name="prevSeparator">Whether the previous character was a separator.</param>
 	/// <param name="isUpper">Whether the current codepoint is an uppercase letter.</param>
 	/// <param name="newScore">The current score to apply bonuses to.</param>

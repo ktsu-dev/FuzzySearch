@@ -1069,6 +1069,41 @@ public class FuzzyTests
 
 	#endregion
 
+	#region Digit Boundary Tests
+
+	// A capital after a digit starts a word, as one after a lowercase letter does (#123). The scores are the table
+	// from the issue; before the fix they were -2, -3, 0, -1 and 3.
+	[TestMethod]
+	[DataRow("Int32Converter", "ic", 8)]
+	[DataRow("Vector3Distance", "vd", 7)]
+	[DataRow("Utf8Encoding", "ue", 10)]
+	[DataRow("Sha256Managed", "sm", 9)]
+	[DataRow("Base64Url", "bu", 13)]
+	public void CapitalAfterDigit_EarnsCamelCaseBonus(string subject, string pattern, int expected)
+	{
+		Assert.AreEqual(expected, ScoreOf(subject, pattern));
+	}
+
+	[TestMethod]
+	[DataRow("Int32Converter", "IntConverter", "ic")]
+	[DataRow("Vector3Distance", "VectorDistance", "vd")]
+	[DataRow("Utf8Encoding", "UtfEncoding", "ue")]
+	[DataRow("Sha256Managed", "ShaManaged", "sm")]
+	public void CapitalAfterDigit_ScoresWithinTheDigitPenaltyOfTheSameNameWithoutDigits(string withDigits, string withoutDigits, string pattern)
+	{
+		// The digits are unmatched characters, so they still cost a little, but no longer the camelCase bonus.
+		int difference = ScoreOf(withoutDigits, pattern) - ScoreOf(withDigits, pattern);
+		Assert.IsTrue(difference is >= 0 and < Fuzzy.camelCaseMatchBonus, $"difference was {difference}");
+	}
+
+	[TestMethod]
+	public void LowercaseAfterDigit_EarnsNoCamelCaseBonus()
+	{
+		Assert.AreEqual(ScoreOf("filexname", "fn"), ScoreOf("file2name", "fn"));
+	}
+
+	#endregion
+
 	#region Separator Tests
 
 	[TestMethod]
