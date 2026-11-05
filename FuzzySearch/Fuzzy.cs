@@ -536,11 +536,34 @@ public static class Fuzzy
 	/// share an uppercase one. The Greek final sigma <c>ς</c> and <c>σ</c> both uppercase to <c>Σ</c>, but only
 	/// <c>σ</c> is what <c>Σ</c> lowercases to; likewise the micro sign <c>µ</c> uppercases to <c>Μ</c>, which
 	/// lowercases to <c>μ</c>. Matching on either the lowercase or the uppercase forms makes both pairs equal.
+	/// <para>
+	/// The Turkish dotted capital <c>İ</c> (U+0130) and dotless small <c>ı</c> (U+0131) have no invariant case
+	/// mapping at all, so neither form pairs them with <c>i</c> or <c>I</c>. Both are folded to <c>i</c> first, which
+	/// makes <c>İ</c>, <c>i</c>, <c>I</c> and <c>ı</c> all equal.
+	/// </para>
 	/// </remarks>
-	private static bool CharsEqualIgnoringCase(char left, char right) =>
-		left == right
-		|| char.ToLowerInvariant(left) == char.ToLowerInvariant(right)
-		|| char.ToUpperInvariant(left) == char.ToUpperInvariant(right);
+	private static bool CharsEqualIgnoringCase(char left, char right)
+	{
+		if (left == right)
+		{
+			return true;
+		}
+
+		left = FoldTurkishI(left);
+		right = FoldTurkishI(right);
+
+		return left == right
+			|| char.ToLowerInvariant(left) == char.ToLowerInvariant(right)
+			|| char.ToUpperInvariant(left) == char.ToUpperInvariant(right);
+	}
+
+	/// <summary>
+	/// Maps the Turkish dotted capital <c>İ</c> and dotless small <c>ı</c> to <c>i</c>, and leaves every other
+	/// character unchanged.
+	/// </summary>
+	/// <param name="c">The character to fold.</param>
+	/// <returns><c>i</c> for <c>İ</c> or <c>ı</c>; otherwise <paramref name="c"/>.</returns>
+	private static char FoldTurkishI(char c) => c is '\u0130' or '\u0131' ? 'i' : c;
 
 	/// <summary>
 	/// Normalizes a span to <see cref="NormalizationForm.FormC"/> so that canonically equivalent text compares equal.
