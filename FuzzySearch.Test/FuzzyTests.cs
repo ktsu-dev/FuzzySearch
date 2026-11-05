@@ -1104,6 +1104,55 @@ public class FuzzyTests
 
 	#endregion
 
+	#region Letter Case Classification Tests
+
+	// Letters whose other case is missing or longer than one character still count as lowercase or uppercase (#124),
+	// so a capital after one earns the camelCase bonus like one after an ASCII letter. Before the fix the first
+	// column scored 2, -2, 1 and -3.
+	[TestMethod]
+	[DataRow("MaßEinheit", "MasEinheit", "me")]
+	[DataRow("aßC", "asC", "c")]
+	[DataRow("kırmızıRenk", "kirmiziRenk", "kr")]
+	[DataRow("xᴀBc", "xaBc", "b")]
+	[DataRow("eﬀIcient", "efIcient", "i")]
+	public void CapitalAfterLowercaseWithoutSimpleUppercase_ScoresLikeAsciiStandIn(string subject, string asciiStandIn, string pattern)
+	{
+		Assert.AreEqual(ScoreOf(asciiStandIn, pattern), ScoreOf(subject, pattern));
+	}
+
+	[TestMethod]
+	[DataRow("ß", false, true)]
+	[DataRow("ı", false, true)]
+	[DataRow("ᴀ", false, true)]
+	[DataRow("ﬀ", false, true)]
+	[DataRow("ŉ", false, true)]
+	[DataRow("ℝ", true, false)]
+	[DataRow("ℂ", true, false)]
+	[DataRow("ǅ", true, false)]
+	[DataRow("Ⓐ", true, false)]
+	[DataRow("ⓐ", false, true)]
+	[DataRow("Ⅰ", true, false)]
+	[DataRow("A", true, false)]
+	[DataRow("a", false, true)]
+	[DataRow("1", false, false)]
+	[DataRow("_", false, false)]
+	[DataRow("ª", false, false)]
+	[DataRow("\U00010400", true, false)]
+	[DataRow("\U00010428", false, true)]
+	[DataRow("\U0001D400", true, false)]
+	[DataRow("\U0001D41A", false, true)]
+	public void GetLetterCase_ClassifiesByUnicodeCategoryAndCaseMapping(string value, bool expectedUpper, bool expectedLower)
+	{
+		ArgumentNullException.ThrowIfNull(value);
+
+		Fuzzy.GetLetterCase(value, 0, value.Length, out bool isUpper, out bool isLower);
+
+		Assert.AreEqual(expectedUpper, isUpper, $"isUpper for U+{char.ConvertToUtf32(value, 0):X4}");
+		Assert.AreEqual(expectedLower, isLower, $"isLower for U+{char.ConvertToUtf32(value, 0):X4}");
+	}
+
+	#endregion
+
 	#region Separator Tests
 
 	[TestMethod]
