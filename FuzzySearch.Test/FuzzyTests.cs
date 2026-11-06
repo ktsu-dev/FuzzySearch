@@ -870,6 +870,49 @@ public class FuzzyTests
 	}
 
 	[TestMethod]
+	[DataRow("q\u0303Bar", "qBar", DisplayName = "q + combining tilde")]
+	[DataRow("\u1ECD\u0300Bar", "oBar", DisplayName = "Yoruba o with dot below + combining grave")]
+	[DataRow("q\u0303\u0301Bar", "qBar", DisplayName = "Two stacked combining marks")]
+	[DataRow("q\u20DDBar", "qBar", DisplayName = "Enclosing mark")]
+	[DataRow("Q\u0303Bar", "QBar", DisplayName = "Mark after a capital: still no camelCase bonus")]
+	[DataRow("q_\u0301Bar", "q_Bar", DisplayName = "Mark after a separator keeps the separator bonus")]
+	[DataRow("q7\u0303Bar", "q7Bar", DisplayName = "Mark after a digit keeps the digit boundary")]
+	public void Contains_WithScore_CapitalAfterACombiningMark_ScoresLikeWithoutTheMark(string subject, string unmarkedSubject)
+	{
+		// Arrange
+		bool unmarked = Fuzzy.Contains(unmarkedSubject, "b", out int unmarkedScore);
+
+		// Act
+		bool result = Fuzzy.Contains(subject, "b", out int score);
+
+		// Assert
+		Assert.IsTrue(unmarked, "The unmarked subject should match.");
+		Assert.IsTrue(result, "The marked subject should match.");
+		Assert.AreEqual(unmarkedScore, score, "A combining mark must carry the state of the letter it attaches to.");
+	}
+
+	[TestMethod]
+	[DataRow("q\u0303Bar", "q\u0303", true, DisplayName = "A mark the pattern asks for is matched")]
+	[DataRow("q\u0303Bar", "q\u0303b", true, DisplayName = "A matched mark, then the capital after it")]
+	[DataRow("qBar", "q\u0303", false, DisplayName = "A mark the subject lacks is not matched")]
+	[DataRow("q\u0301Bar", "q\u0303", false, DisplayName = "A different mark is not matched")]
+	public void Contains_CombiningMarkInPattern_MustBePresent(string subject, string pattern, bool expected) =>
+		Assert.AreEqual(expected, Fuzzy.Contains(subject, pattern));
+
+	[TestMethod]
+	[DataRow("\u0301", true, DisplayName = "Nonspacing mark")]
+	[DataRow("\u0903", true, DisplayName = "Spacing combining mark")]
+	[DataRow("\u20DD", true, DisplayName = "Enclosing mark")]
+	[DataRow("\U0001D167", true, DisplayName = "Supplementary-plane nonspacing mark")]
+	[DataRow("a", false, DisplayName = "Letter")]
+	[DataRow("_", false, DisplayName = "Separator")]
+	public void IsCombiningMark_ClassifiesTheWholeCodepoint(string value, bool expected)
+	{
+		Assert.IsNotNull(value);
+		Assert.AreEqual(expected, Fuzzy.IsCombiningMark(value, 0, value.Length));
+	}
+
+	[TestMethod]
 	public void Contains_WithScore_InsideASupplementaryPlaneCapitalRun_EarnsNoCamelCaseBonus()
 	{
 		// Arrange
