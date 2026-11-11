@@ -870,6 +870,49 @@ public class FuzzyTests
 	}
 
 	[TestMethod]
+	[DataRow("q\u0303Bar", "qBar", DisplayName = "q + combining tilde")]
+	[DataRow("\u1ECD\u0300Bar", "oBar", DisplayName = "Yoruba o with dot below + combining grave")]
+	[DataRow("q\u0303\u0301Bar", "qBar", DisplayName = "Two stacked combining marks")]
+	[DataRow("q\u20DDBar", "qBar", DisplayName = "Enclosing mark")]
+	[DataRow("Q\u0303Bar", "QBar", DisplayName = "Mark after a capital: still no camelCase bonus")]
+	[DataRow("q_\u0301Bar", "q_Bar", DisplayName = "Mark after a separator keeps the separator bonus")]
+	[DataRow("q7\u0303Bar", "q7Bar", DisplayName = "Mark after a digit keeps the digit boundary")]
+	public void Contains_WithScore_CapitalAfterACombiningMark_ScoresLikeWithoutTheMark(string subject, string unmarkedSubject)
+	{
+		// Arrange
+		bool unmarked = Fuzzy.Contains(unmarkedSubject, "b", out int unmarkedScore);
+
+		// Act
+		bool result = Fuzzy.Contains(subject, "b", out int score);
+
+		// Assert
+		Assert.IsTrue(unmarked, "The unmarked subject should match.");
+		Assert.IsTrue(result, "The marked subject should match.");
+		Assert.AreEqual(unmarkedScore, score, "A combining mark must carry the state of the letter it attaches to.");
+	}
+
+	[TestMethod]
+	[DataRow("q\u0303Bar", "q\u0303", true, DisplayName = "A mark the pattern asks for is matched")]
+	[DataRow("q\u0303Bar", "q\u0303b", true, DisplayName = "A matched mark, then the capital after it")]
+	[DataRow("qBar", "q\u0303", false, DisplayName = "A mark the subject lacks is not matched")]
+	[DataRow("q\u0301Bar", "q\u0303", false, DisplayName = "A different mark is not matched")]
+	public void Contains_CombiningMarkInPattern_MustBePresent(string subject, string pattern, bool expected) =>
+		Assert.AreEqual(expected, Fuzzy.Contains(subject, pattern));
+
+	[TestMethod]
+	[DataRow("\u0301", true, DisplayName = "Nonspacing mark")]
+	[DataRow("\u0903", true, DisplayName = "Spacing combining mark")]
+	[DataRow("\u20DD", true, DisplayName = "Enclosing mark")]
+	[DataRow("\U0001D167", true, DisplayName = "Supplementary-plane nonspacing mark")]
+	[DataRow("a", false, DisplayName = "Letter")]
+	[DataRow("_", false, DisplayName = "Separator")]
+	public void IsCombiningMark_ClassifiesTheWholeCodepoint(string value, bool expected)
+	{
+		Assert.IsNotNull(value);
+		Assert.AreEqual(expected, Fuzzy.IsCombiningMark(value, 0, value.Length));
+	}
+
+	[TestMethod]
 	public void Contains_WithScore_InsideASupplementaryPlaneCapitalRun_EarnsNoCamelCaseBonus()
 	{
 		// Arrange
@@ -904,6 +947,39 @@ public class FuzzyTests
 		// Assert
 		Assert.IsTrue(result, $"\"{pattern}\" should match \"{subject}\" ignoring case.");
 		Assert.IsTrue(scoredResult, $"The scoring overload should agree that \"{pattern}\" matches \"{subject}\".");
+	}
+
+	[TestMethod]
+	[DataRow("İstanbul", "istanbul")]
+	[DataRow("Istanbul", "İstanbul")]
+	[DataRow("ı", "I")]
+	[DataRow("İ", "i")]
+	[DataRow("I", "ı")]
+	[DataRow("i", "İ")]
+	[DataRow("İ", "ı")]
+	[DataRow("kırmızı", "kirmizi")]
+	[DataRow("kırmızı", "KIRMIZI")]
+	public void Contains_TurkishDottedAndDotlessI_MatchIgnoringCase(string subject, string pattern)
+	{
+		// Act
+		bool result = Fuzzy.Contains(subject, pattern);
+		bool scoredResult = Fuzzy.Contains(subject, pattern, out _);
+
+		// Assert
+		Assert.IsTrue(result, $"\"{pattern}\" should match \"{subject}\" ignoring case.");
+		Assert.IsTrue(scoredResult, $"The scoring overload should agree that \"{pattern}\" matches \"{subject}\".");
+	}
+
+	[TestMethod]
+	[DataRow("İstanbul", "x")]
+	[DataRow("ı", "j")]
+	public void Contains_TurkishDottedAndDotlessI_DoNotMatchOtherLetters(string subject, string pattern)
+	{
+		// Act
+		bool result = Fuzzy.Contains(subject, pattern);
+
+		// Assert
+		Assert.IsFalse(result, $"\"{pattern}\" should not match \"{subject}\".");
 	}
 
 	[TestMethod]
@@ -1119,6 +1195,55 @@ public class FuzzyTests
 	public void LowercaseAfterDigit_EarnsNoCamelCaseBonus()
 	{
 		Assert.AreEqual(ScoreOf("filexname", "fn"), ScoreOf("file2name", "fn"));
+	}
+
+	#endregion
+
+	#region Letter Case Classification Tests
+
+	// Letters whose other case is missing or longer than one character still count as lowercase or uppercase (#124),
+	// so a capital after one earns the camelCase bonus like one after an ASCII letter. Before the fix the first
+	// column scored 2, -2, 1 and -3.
+	[TestMethod]
+	[DataRow("MaßEinheit", "MasEinheit", "me")]
+	[DataRow("aßC", "asC", "c")]
+	[DataRow("kırmızıRenk", "kirmiziRenk", "kr")]
+	[DataRow("xᴀBc", "xaBc", "b")]
+	[DataRow("eﬀIcient", "efIcient", "i")]
+	public void CapitalAfterLowercaseWithoutSimpleUppercase_ScoresLikeAsciiStandIn(string subject, string asciiStandIn, string pattern)
+	{
+		Assert.AreEqual(ScoreOf(asciiStandIn, pattern), ScoreOf(subject, pattern));
+	}
+
+	[TestMethod]
+	[DataRow("ß", false, true)]
+	[DataRow("ı", false, true)]
+	[DataRow("ᴀ", false, true)]
+	[DataRow("ﬀ", false, true)]
+	[DataRow("ŉ", false, true)]
+	[DataRow("ℝ", true, false)]
+	[DataRow("ℂ", true, false)]
+	[DataRow("ǅ", true, false)]
+	[DataRow("Ⓐ", true, false)]
+	[DataRow("ⓐ", false, true)]
+	[DataRow("Ⅰ", true, false)]
+	[DataRow("A", true, false)]
+	[DataRow("a", false, true)]
+	[DataRow("1", false, false)]
+	[DataRow("_", false, false)]
+	[DataRow("ª", false, false)]
+	[DataRow("\U00010400", true, false)]
+	[DataRow("\U00010428", false, true)]
+	[DataRow("\U0001D400", true, false)]
+	[DataRow("\U0001D41A", false, true)]
+	public void GetLetterCase_ClassifiesByUnicodeCategoryAndCaseMapping(string value, bool expectedUpper, bool expectedLower)
+	{
+		ArgumentNullException.ThrowIfNull(value);
+
+		Fuzzy.GetLetterCase(value, 0, value.Length, out bool isUpper, out bool isLower);
+
+		Assert.AreEqual(expectedUpper, isUpper, $"isUpper for U+{char.ConvertToUtf32(value, 0):X4}");
+		Assert.AreEqual(expectedLower, isLower, $"isLower for U+{char.ConvertToUtf32(value, 0):X4}");
 	}
 
 	#endregion

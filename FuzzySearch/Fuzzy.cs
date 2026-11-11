@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2023-2026 ktsu-dev contributors
 
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -216,6 +217,10 @@ public static class Fuzzy
 		int provisionalPrefixPenalty = 0;
 		int provisionalCharges = 0;
 
+		// A combining mark belongs to the letter before it. Unless the pattern asks for it, it is skipped rather than
+		// scored, so "q\u0303Bar" costs and earns what "qBar" does.
+		strIdx = SkipUnmatchedMarks(subject, strIdx, pattern, patternIdx, bestLetterIdx, bestLetterLength);
+
 		// Loop over codepoints in subject
 		while (strIdx != strLength)
 		{
@@ -224,9 +229,7 @@ public static class Fuzzy
 			int strCharLength = CodepointLengthAt(subject, strIdx);
 
 			// Case is read from the whole codepoint, so a supplementary-plane capital such as Deseret U+10400 marks a
-			// camelCase boundary like a basic-plane one. The leading code unit is enough to tell a separator, because
-			// every separator is a basic-plane character and a surrogate never is one.
-			char strChar = subject[strIdx];
+			// camelCase boundary like a basic-plane one.
 			GetLetterCase(subject, strIdx, strCharLength, out bool strIsUpper, out bool strIsLower);
 
 			bool nextMatch = hasPatternChar && CodepointsEqual(pattern, patternIdx, patternCharLength, subject, strIdx, strCharLength);
@@ -329,11 +332,9 @@ public static class Fuzzy
 				prevMatched = false;
 			}
 
-			prevLower = strIsLower;
-			prevDigit = IsDecimalDigit(subject, strIdx, strCharLength);
-			prevSeparator = IsSeparator(strChar);
+			UpdatePreviousCodepoint(subject, strIdx, strCharLength, strIsLower, ref prevLower, ref prevDigit, ref prevSeparator);
 
-			strIdx += strCharLength;
+			strIdx = SkipUnmatchedMarks(subject, strIdx + strCharLength, pattern, patternIdx, bestLetterIdx, bestLetterLength);
 			strCodepointIdx++;
 		}
 
@@ -479,6 +480,81 @@ public static class Fuzzy
 	}
 
 	/// <summary>
+	/// Advances past the combining marks at the given index that neither the next pattern codepoint nor the best
+	/// letter so far would match.
+	/// </summary>
+	/// <param name="subject">The text being scored.</param>
+	/// <param name="index">The index of the next codepoint to score.</param>
+	/// <param name="pattern">The pattern being matched.</param>
+	/// <param name="patternIdx">The index of the next pattern codepoint.</param>
+	/// <param name="bestLetterIdx">The index of the best letter so far, if any.</param>
+	/// <param name="bestLetterLength">The length of the best letter so far, in code units.</param>
+	/// <returns>The index of the next codepoint that is scored, or the length of <paramref name="subject"/>.</returns>
+	private static int SkipUnmatchedMarks(ReadOnlySpan<char> subject, int index, ReadOnlySpan<char> pattern, int patternIdx, int? bestLetterIdx, int bestLetterLength)
+	{
+		while (index < subject.Length)
+		{
+			int length = CodepointLengthAt(subject, index);
+			if (!IsCombiningMark(subject, index, length))
+			{
+				break;
+			}
+
+			bool matchesPattern = patternIdx < pattern.Length
+				&& CodepointsEqual(pattern, patternIdx, CodepointLengthAt(pattern, patternIdx), subject, index, length);
+			bool matchesBestLetter = bestLetterIdx is int best
+				&& CodepointsEqual(subject, best, bestLetterLength, subject, index, length);
+			if (matchesPattern || matchesBestLetter)
+			{
+				break;
+			}
+
+			index += length;
+		}
+
+		return index;
+	}
+
+	/// <summary>
+	/// Records the codepoint just scored as the previous one, for the word-boundary bonuses of the next codepoint.
+	/// </summary>
+	/// <remarks>
+	/// A combining mark belongs to the letter before it, so it leaves that letter's state in place: the "B" of
+	/// "q\u0303Bar" still follows a lowercase letter, as it does in "qBar". The leading code unit is enough to tell a
+	/// separator, because every separator is a basic-plane character and a surrogate never is one.
+	/// </remarks>
+	private static void UpdatePreviousCodepoint(ReadOnlySpan<char> subject, int index, int length, bool isLower, ref bool prevLower, ref bool prevDigit, ref bool prevSeparator)
+	{
+		if (IsCombiningMark(subject, index, length))
+		{
+			return;
+		}
+
+		char value = subject[index];
+		prevLower = isLower;
+		prevDigit = IsDecimalDigit(subject, index, length);
+		prevSeparator = IsSeparator(value);
+	}
+
+	/// <summary>
+	/// Determines whether the codepoint at the given index is a combining mark (Unicode category Mn, Mc or Me).
+	/// </summary>
+	/// <param name="value">The span holding the codepoint.</param>
+	/// <param name="index">The index of the first code unit of the codepoint.</param>
+	/// <param name="length">The length of the codepoint in code units.</param>
+	/// <returns><c>true</c> if the codepoint is a combining mark; otherwise, <c>false</c>.</returns>
+	internal static bool IsCombiningMark(ReadOnlySpan<char> value, int index, int length)
+	{
+		System.Globalization.UnicodeCategory category = length == 2
+			? System.Globalization.CharUnicodeInfo.GetUnicodeCategory(value.Slice(index, 2).ToString(), 0)
+			: System.Globalization.CharUnicodeInfo.GetUnicodeCategory(value[index]);
+
+		return category is System.Globalization.UnicodeCategory.NonSpacingMark
+			or System.Globalization.UnicodeCategory.SpacingCombiningMark
+			or System.Globalization.UnicodeCategory.EnclosingMark;
+	}
+
+	/// <summary>
 	/// Determines whether the codepoint at the given index is a decimal digit (Unicode category Nd).
 	/// </summary>
 	/// <param name="value">The span holding the codepoint.</param>
@@ -512,8 +588,14 @@ public static class Fuzzy
 	/// <param name="isUpper">When this method returns, whether the codepoint is an uppercase letter.</param>
 	/// <param name="isLower">When this method returns, whether the codepoint is a lowercase letter.</param>
 	/// <remarks>
-	/// A codepoint counts as a letter only when its lowercase and uppercase forms differ, so caseless characters are
-	/// neither. A supplementary-plane codepoint is cased as a whole, because <see cref="char.ToLowerInvariant(char)"/>
+	/// A codepoint is uppercase when its Unicode category is <see cref="UnicodeCategory.UppercaseLetter"/> or
+	/// <see cref="UnicodeCategory.TitlecaseLetter"/>, and lowercase when it is
+	/// <see cref="UnicodeCategory.LowercaseLetter"/>. The category catches letters whose other case is missing or
+	/// takes more than one character, such as <c>ß</c>, <c>ı</c>, <c>ᴀ</c> and <c>ℝ</c>, which a case round-trip
+	/// alone calls caseless. A codepoint whose lowercase and uppercase forms differ is also classified by which form
+	/// it equals, so cased symbols such as <c>Ⓐ</c> and <c>Ⅰ</c> keep their case. Caseless characters are neither.
+	/// A titlecase digraph such as <c>ǅ</c> counts as uppercase, because it starts a word.
+	/// A supplementary-plane codepoint is cased as a whole, because <see cref="char.ToLowerInvariant(char)"/>
 	/// has no case mapping for either half of a surrogate pair.
 	/// </remarks>
 	internal static void GetLetterCase(ReadOnlySpan<char> value, int index, int length, out bool isUpper, out bool isLower)
@@ -525,18 +607,20 @@ public static class Fuzzy
 			Rune runeLower = Rune.ToLowerInvariant(rune);
 			Rune runeUpper = Rune.ToUpperInvariant(rune);
 			bool runeIsCased = runeLower != runeUpper;
+			UnicodeCategory runeCategory = Rune.GetUnicodeCategory(rune);
 
-			isUpper = runeIsCased && rune == runeUpper;
-			isLower = runeIsCased && rune == runeLower;
+			isUpper = IsUpperCategory(runeCategory) || (runeIsCased && rune == runeUpper);
+			isLower = runeCategory == UnicodeCategory.LowercaseLetter || (runeIsCased && rune == runeLower);
 #else
 			// Rune is not available here, but the invariant string casing maps a surrogate pair as one codepoint.
 			string pair = value.Slice(index, 2).ToString();
 			string pairLower = pair.ToLowerInvariant();
 			string pairUpper = pair.ToUpperInvariant();
 			bool pairIsCased = !string.Equals(pairLower, pairUpper, StringComparison.Ordinal);
+			UnicodeCategory pairCategory = CharUnicodeInfo.GetUnicodeCategory(pair, 0);
 
-			isUpper = pairIsCased && string.Equals(pair, pairUpper, StringComparison.Ordinal);
-			isLower = pairIsCased && string.Equals(pair, pairLower, StringComparison.Ordinal);
+			isUpper = IsUpperCategory(pairCategory) || (pairIsCased && string.Equals(pair, pairUpper, StringComparison.Ordinal));
+			isLower = pairCategory == UnicodeCategory.LowercaseLetter || (pairIsCased && string.Equals(pair, pairLower, StringComparison.Ordinal));
 #endif
 			return;
 		}
@@ -545,10 +629,22 @@ public static class Fuzzy
 		char lower = char.ToLowerInvariant(c);
 		char upper = char.ToUpperInvariant(c);
 		bool isCased = lower != upper;
+		UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(c);
 
-		isUpper = isCased && c == upper;
-		isLower = isCased && c == lower;
+		isUpper = IsUpperCategory(category) || (isCased && c == upper);
+		isLower = category == UnicodeCategory.LowercaseLetter || (isCased && c == lower);
 	}
+
+	/// <summary>
+	/// Determines whether a Unicode category starts a word the way a capital does.
+	/// </summary>
+	/// <param name="category">The category to test.</param>
+	/// <returns>
+	/// <c>true</c> for <see cref="UnicodeCategory.UppercaseLetter"/> and <see cref="UnicodeCategory.TitlecaseLetter"/>;
+	/// otherwise, <c>false</c>.
+	/// </returns>
+	private static bool IsUpperCategory(UnicodeCategory category) =>
+		category is UnicodeCategory.UppercaseLetter or UnicodeCategory.TitlecaseLetter;
 
 	/// <summary>
 	/// Determines whether two characters are the same, ignoring case.
@@ -561,11 +657,34 @@ public static class Fuzzy
 	/// share an uppercase one. The Greek final sigma <c>ς</c> and <c>σ</c> both uppercase to <c>Σ</c>, but only
 	/// <c>σ</c> is what <c>Σ</c> lowercases to; likewise the micro sign <c>µ</c> uppercases to <c>Μ</c>, which
 	/// lowercases to <c>μ</c>. Matching on either the lowercase or the uppercase forms makes both pairs equal.
+	/// <para>
+	/// The Turkish dotted capital <c>İ</c> (U+0130) and dotless small <c>ı</c> (U+0131) have no invariant case
+	/// mapping at all, so neither form pairs them with <c>i</c> or <c>I</c>. Both are folded to <c>i</c> first, which
+	/// makes <c>İ</c>, <c>i</c>, <c>I</c> and <c>ı</c> all equal.
+	/// </para>
 	/// </remarks>
-	private static bool CharsEqualIgnoringCase(char left, char right) =>
-		left == right
-		|| char.ToLowerInvariant(left) == char.ToLowerInvariant(right)
-		|| char.ToUpperInvariant(left) == char.ToUpperInvariant(right);
+	private static bool CharsEqualIgnoringCase(char left, char right)
+	{
+		if (left == right)
+		{
+			return true;
+		}
+
+		left = FoldTurkishI(left);
+		right = FoldTurkishI(right);
+
+		return left == right
+			|| char.ToLowerInvariant(left) == char.ToLowerInvariant(right)
+			|| char.ToUpperInvariant(left) == char.ToUpperInvariant(right);
+	}
+
+	/// <summary>
+	/// Maps the Turkish dotted capital <c>İ</c> and dotless small <c>ı</c> to <c>i</c>, and leaves every other
+	/// character unchanged.
+	/// </summary>
+	/// <param name="c">The character to fold.</param>
+	/// <returns><c>i</c> for <c>İ</c> or <c>ı</c>; otherwise <paramref name="c"/>.</returns>
+	private static char FoldTurkishI(char c) => c is '\u0130' or '\u0131' ? 'i' : c;
 
 	/// <summary>
 	/// Normalizes a span to <see cref="NormalizationForm.FormC"/> so that canonically equivalent text compares equal.
