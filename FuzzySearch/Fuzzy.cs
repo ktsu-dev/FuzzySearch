@@ -532,7 +532,7 @@ public static class Fuzzy
 
 		char value = subject[index];
 		prevLower = isLower;
-		prevDigit = char.IsDigit(value);
+		prevDigit = IsDecimalDigit(subject, index, length);
 		prevSeparator = IsSeparator(value);
 	}
 
@@ -552,6 +552,31 @@ public static class Fuzzy
 		return category is System.Globalization.UnicodeCategory.NonSpacingMark
 			or System.Globalization.UnicodeCategory.SpacingCombiningMark
 			or System.Globalization.UnicodeCategory.EnclosingMark;
+	}
+
+	/// <summary>
+	/// Determines whether the codepoint at the given index is a decimal digit (Unicode category Nd).
+	/// </summary>
+	/// <param name="value">The span holding the codepoint.</param>
+	/// <param name="index">The index of the first code unit of the codepoint.</param>
+	/// <param name="length">The length of the codepoint in code units.</param>
+	/// <returns><c>true</c> if the codepoint is a decimal digit; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// A supplementary-plane digit such as U+1D7D1 MATHEMATICAL BOLD DIGIT THREE is classified as a whole, because
+	/// <see cref="char.IsDigit(char)"/> sees only a surrogate in either half of the pair.
+	/// </remarks>
+	internal static bool IsDecimalDigit(ReadOnlySpan<char> value, int index, int length)
+	{
+		if (length == 2)
+		{
+#if NETCOREAPP3_0_OR_GREATER
+			return Rune.IsDigit(new Rune(value[index], value[index + 1]));
+#else
+			return System.Globalization.CharUnicodeInfo.GetUnicodeCategory(value.Slice(index, 2).ToString(), 0) == System.Globalization.UnicodeCategory.DecimalDigitNumber;
+#endif
+		}
+
+		return char.IsDigit(value[index]);
 	}
 
 	/// <summary>

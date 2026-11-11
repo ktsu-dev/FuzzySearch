@@ -1172,6 +1172,25 @@ public class FuzzyTests
 		Assert.IsTrue(difference is >= 0 and < Fuzzy.camelCaseMatchBonus, $"difference was {difference}");
 	}
 
+	// A supplementary-plane decimal digit such as U+1D7D1 MATHEMATICAL BOLD DIGIT THREE is a digit too, so the capital
+	// after it starts a word just as after "3" or the basic-plane Arabic-Indic "\u0663" (#133).
+	[TestMethod]
+	[DataRow("Vector3Distance")]
+	[DataRow("Vector\u0663Distance")]
+	[DataRow("Vector\U0001D7D1Distance")]
+	public void CapitalAfterAnyDecimalDigit_EarnsCamelCaseBonus(string subject)
+	{
+		Assert.AreEqual(7, ScoreOf(subject, "vd"));
+	}
+
+	[TestMethod]
+	public void IsDecimalDigit_ClassifiesASupplementaryPlaneDigitAsAWhole()
+	{
+		string digit = "\U0001D7D1";
+		Assert.IsTrue(Fuzzy.IsDecimalDigit(digit.AsSpan(), 0, 2));
+		Assert.IsFalse(Fuzzy.IsDecimalDigit("\U00010400".AsSpan(), 0, 2), "A supplementary-plane letter is not a digit.");
+	}
+
 	[TestMethod]
 	public void LowercaseAfterDigit_EarnsNoCamelCaseBonus()
 	{
