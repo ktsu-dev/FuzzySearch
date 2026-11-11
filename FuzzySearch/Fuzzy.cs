@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2023-2026 ktsu-dev contributors
 
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -562,8 +563,14 @@ public static class Fuzzy
 	/// <param name="isUpper">When this method returns, whether the codepoint is an uppercase letter.</param>
 	/// <param name="isLower">When this method returns, whether the codepoint is a lowercase letter.</param>
 	/// <remarks>
-	/// A codepoint counts as a letter only when its lowercase and uppercase forms differ, so caseless characters are
-	/// neither. A supplementary-plane codepoint is cased as a whole, because <see cref="char.ToLowerInvariant(char)"/>
+	/// A codepoint is uppercase when its Unicode category is <see cref="UnicodeCategory.UppercaseLetter"/> or
+	/// <see cref="UnicodeCategory.TitlecaseLetter"/>, and lowercase when it is
+	/// <see cref="UnicodeCategory.LowercaseLetter"/>. The category catches letters whose other case is missing or
+	/// takes more than one character, such as <c>ß</c>, <c>ı</c>, <c>ᴀ</c> and <c>ℝ</c>, which a case round-trip
+	/// alone calls caseless. A codepoint whose lowercase and uppercase forms differ is also classified by which form
+	/// it equals, so cased symbols such as <c>Ⓐ</c> and <c>Ⅰ</c> keep their case. Caseless characters are neither.
+	/// A titlecase digraph such as <c>ǅ</c> counts as uppercase, because it starts a word.
+	/// A supplementary-plane codepoint is cased as a whole, because <see cref="char.ToLowerInvariant(char)"/>
 	/// has no case mapping for either half of a surrogate pair.
 	/// </remarks>
 	internal static void GetLetterCase(ReadOnlySpan<char> value, int index, int length, out bool isUpper, out bool isLower)
@@ -575,18 +582,20 @@ public static class Fuzzy
 			Rune runeLower = Rune.ToLowerInvariant(rune);
 			Rune runeUpper = Rune.ToUpperInvariant(rune);
 			bool runeIsCased = runeLower != runeUpper;
+			UnicodeCategory runeCategory = Rune.GetUnicodeCategory(rune);
 
-			isUpper = runeIsCased && rune == runeUpper;
-			isLower = runeIsCased && rune == runeLower;
+			isUpper = IsUpperCategory(runeCategory) || (runeIsCased && rune == runeUpper);
+			isLower = runeCategory == UnicodeCategory.LowercaseLetter || (runeIsCased && rune == runeLower);
 #else
 			// Rune is not available here, but the invariant string casing maps a surrogate pair as one codepoint.
 			string pair = value.Slice(index, 2).ToString();
 			string pairLower = pair.ToLowerInvariant();
 			string pairUpper = pair.ToUpperInvariant();
 			bool pairIsCased = !string.Equals(pairLower, pairUpper, StringComparison.Ordinal);
+			UnicodeCategory pairCategory = CharUnicodeInfo.GetUnicodeCategory(pair, 0);
 
-			isUpper = pairIsCased && string.Equals(pair, pairUpper, StringComparison.Ordinal);
-			isLower = pairIsCased && string.Equals(pair, pairLower, StringComparison.Ordinal);
+			isUpper = IsUpperCategory(pairCategory) || (pairIsCased && string.Equals(pair, pairUpper, StringComparison.Ordinal));
+			isLower = pairCategory == UnicodeCategory.LowercaseLetter || (pairIsCased && string.Equals(pair, pairLower, StringComparison.Ordinal));
 #endif
 			return;
 		}
@@ -595,10 +604,22 @@ public static class Fuzzy
 		char lower = char.ToLowerInvariant(c);
 		char upper = char.ToUpperInvariant(c);
 		bool isCased = lower != upper;
+		UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(c);
 
-		isUpper = isCased && c == upper;
-		isLower = isCased && c == lower;
+		isUpper = IsUpperCategory(category) || (isCased && c == upper);
+		isLower = category == UnicodeCategory.LowercaseLetter || (isCased && c == lower);
 	}
+
+	/// <summary>
+	/// Determines whether a Unicode category starts a word the way a capital does.
+	/// </summary>
+	/// <param name="category">The category to test.</param>
+	/// <returns>
+	/// <c>true</c> for <see cref="UnicodeCategory.UppercaseLetter"/> and <see cref="UnicodeCategory.TitlecaseLetter"/>;
+	/// otherwise, <c>false</c>.
+	/// </returns>
+	private static bool IsUpperCategory(UnicodeCategory category) =>
+		category is UnicodeCategory.UppercaseLetter or UnicodeCategory.TitlecaseLetter;
 
 	/// <summary>
 	/// Determines whether two characters are the same, ignoring case.
