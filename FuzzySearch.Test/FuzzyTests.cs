@@ -950,6 +950,39 @@ public class FuzzyTests
 	}
 
 	[TestMethod]
+	[DataRow("İstanbul", "istanbul")]
+	[DataRow("Istanbul", "İstanbul")]
+	[DataRow("ı", "I")]
+	[DataRow("İ", "i")]
+	[DataRow("I", "ı")]
+	[DataRow("i", "İ")]
+	[DataRow("İ", "ı")]
+	[DataRow("kırmızı", "kirmizi")]
+	[DataRow("kırmızı", "KIRMIZI")]
+	public void Contains_TurkishDottedAndDotlessI_MatchIgnoringCase(string subject, string pattern)
+	{
+		// Act
+		bool result = Fuzzy.Contains(subject, pattern);
+		bool scoredResult = Fuzzy.Contains(subject, pattern, out _);
+
+		// Assert
+		Assert.IsTrue(result, $"\"{pattern}\" should match \"{subject}\" ignoring case.");
+		Assert.IsTrue(scoredResult, $"The scoring overload should agree that \"{pattern}\" matches \"{subject}\".");
+	}
+
+	[TestMethod]
+	[DataRow("İstanbul", "x")]
+	[DataRow("ı", "j")]
+	public void Contains_TurkishDottedAndDotlessI_DoNotMatchOtherLetters(string subject, string pattern)
+	{
+		// Act
+		bool result = Fuzzy.Contains(subject, pattern);
+
+		// Assert
+		Assert.IsFalse(result, $"\"{pattern}\" should not match \"{subject}\".");
+	}
+
+	[TestMethod]
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase", Justification = "Lower-casing the pattern is one of the two case changes under test.")]
 	public void Contains_ChangingThePatternsCase_NeverChangesTheResultOrScore()
 	{
