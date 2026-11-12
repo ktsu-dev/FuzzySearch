@@ -1,6 +1,6 @@
-## v1.4.4-pre.1 (prerelease)
+## v1.4.4-pre.2 (prerelease)
 
-Changes since v1.4.3:
+Changes since v1.4.4-pre.1:
 
-- Bump the ktsu group with 9 updates (dependabot[bot])
+- Bump MSTest.Sdk from 4.5.2 to 4.5.3 (dependabot[bot])
 
