@@ -202,6 +202,10 @@ public static class Fuzzy
 		// such as the lowercase 'm' in "FileSystemManager", can still give way to a better-placed copy.
 		bool bestLetterContinuesRun = false;
 
+		// The index of the codepoint the previous iteration scored. Unmatched combining marks are skipped between
+		// iterations, so this is not always the code unit before strIdx.
+		int? prevScoredIdx = null;
+
 		// The generic per-codepoint penalty below also charges the codepoints before the first match. That is
 		// refunded when the first match lands, so PenalizeNonPatternCharacters stays the sole — and therefore
 		// capped — source of prefix cost. Without the refund the two stack and maxPrefixPenalty bounds only one
@@ -280,7 +284,7 @@ public static class Fuzzy
 
 				// Update best letter in stringToSearch which may be for a "next" letter or a "rematch"
 				bool displacesRun = rematch && !nextMatch && bestLetterContinuesRun;
-				bool continuesRun = ContinuesRun(prevMatched, rematch, nextMatch, bestLetterIdx, bestLetterLength, strIdx);
+				bool continuesRun = ContinuesRun(prevMatched, rematch, nextMatch, bestLetterIdx, prevScoredIdx);
 				if (newScore >= bestLetterScore && !displacesRun)
 				{
 					if (ReplacesProvisionalFirstLetter(firstLetterProvisional, rematch, nextMatch))
@@ -334,6 +338,7 @@ public static class Fuzzy
 
 			UpdatePreviousCodepoint(subject, strIdx, strCharLength, strIsLower, ref prevLower, ref prevDigit, ref prevSeparator);
 
+			prevScoredIdx = strIdx;
 			strIdx = SkipUnmatchedMarks(subject, strIdx + strCharLength, pattern, patternIdx, bestLetterIdx, bestLetterLength);
 			strCodepointIdx++;
 		}
@@ -362,18 +367,19 @@ public static class Fuzzy
 	/// <summary>
 	/// Determines whether a match continues a run of matched codepoints. Following the copy of the best letter that
 	/// it replaces does not count: that copy is no longer matched, and counting it would let the doubled letter in
-	/// "address" stop the camelCase copy in "Space" from displacing it.
+	/// "address" stop the camelCase copy in "Space" from displacing it. The copy is found by the index of the codepoint
+	/// scored before this one, not by code-unit adjacency, so an unmatched combining mark between the two copies, which
+	/// is skipped, does not hide it.
 	/// </summary>
 	/// <param name="prevMatched">Whether the previous subject codepoint matched.</param>
 	/// <param name="rematch">Whether the subject codepoint repeats the best letter.</param>
 	/// <param name="nextMatch">Whether the subject codepoint matches the next pattern codepoint.</param>
 	/// <param name="bestLetterIdx">The index of the best letter in the subject, if there is one.</param>
-	/// <param name="bestLetterLength">The length of the best letter in code units.</param>
-	/// <param name="strIdx">The index of the subject codepoint being matched.</param>
+	/// <param name="prevScoredIdx">The index of the subject codepoint scored before this one, if there is one.</param>
 	/// <returns><c>true</c> if the match continues a run; otherwise, <c>false</c>.</returns>
-	private static bool ContinuesRun(bool prevMatched, bool rematch, bool nextMatch, int? bestLetterIdx, int bestLetterLength, int strIdx)
+	private static bool ContinuesRun(bool prevMatched, bool rematch, bool nextMatch, int? bestLetterIdx, int? prevScoredIdx)
 	{
-		bool followsOwnCopy = rematch && !nextMatch && bestLetterIdx is not null && bestLetterIdx.Value + bestLetterLength == strIdx;
+		bool followsOwnCopy = rematch && !nextMatch && bestLetterIdx is not null && bestLetterIdx == prevScoredIdx;
 		return prevMatched && !followsOwnCopy;
 	}
 
