@@ -712,10 +712,49 @@ public static class Fuzzy
 
 		// Text that is not well-formed Unicode (for example a lone surrogate, or U+FFFE) cannot be normalized
 		// as a whole. Normalize the well-formed text around it instead, so one stray surrogate does not
-		// switch off canonical equivalence for the rest of the string.
+		// switch off canonical equivalence for the rest of the string. Checking first, rather than letting
+		// Normalize throw, keeps such text from raising and catching an exception on every call.
+		if (HasUnnormalizableCodeUnit(value))
+		{
+			return NormalizeWellFormedRuns(value);
+		}
+
 		return TryNormalize(value.ToString(), out string normalized)
 			? normalized.AsSpan()
 			: NormalizeWellFormedRuns(value);
+	}
+
+	/// <summary>
+	/// Determines whether <paramref name="value"/> holds a code unit that makes <see cref="string.Normalize(NormalizationForm)"/>
+	/// throw: an unpaired surrogate, or U+FFFE.
+	/// </summary>
+	/// <param name="value">The span to inspect.</param>
+	/// <returns><see langword="true"/> if the span holds such a code unit; otherwise <see langword="false"/>.</returns>
+	internal static bool HasUnnormalizableCodeUnit(ReadOnlySpan<char> value)
+	{
+		for (int i = 0; i < value.Length; i++)
+		{
+			char c = value[i];
+			if (c == '\uFFFE')
+			{
+				return true;
+			}
+
+			if (!char.IsSurrogate(c))
+			{
+				continue;
+			}
+
+			if (char.IsHighSurrogate(c) && i + 1 < value.Length && char.IsLowSurrogate(value[i + 1]))
+			{
+				i++;
+				continue;
+			}
+
+			return true;
+		}
+
+		return false;
 	}
 
 	/// <summary>
