@@ -78,7 +78,7 @@ public static class Fuzzy
 	/// </para>
 	/// </remarks>
 	public static bool Contains(ReadOnlySpan<char> subject, ReadOnlySpan<char> pattern) =>
-		ContainsCore(NormalizeForComparison(subject), NormalizeForComparison(pattern));
+		ContainsCore(PrepareForComparison(subject), PrepareForComparison(pattern));
 
 	/// <summary>
 	/// Determines whether the specified subject contains all characters from the pattern in sequence, and calculates a match score.
@@ -156,7 +156,7 @@ public static class Fuzzy
 	/// </para>
 	/// </remarks>
 	internal static int CalculateScore(ReadOnlySpan<char> subject, ReadOnlySpan<char> pattern, out bool wholePatternIsPresent) =>
-		CalculateScoreCore(NormalizeForComparison(subject), NormalizeForComparison(pattern), out wholePatternIsPresent);
+		CalculateScoreCore(PrepareForComparison(subject), PrepareForComparison(pattern), out wholePatternIsPresent);
 
 	/// <summary>
 	/// Calculates a fuzzy match score between the subject span and pattern span, assuming both spans are already
@@ -676,8 +676,8 @@ public static class Fuzzy
 			return true;
 		}
 
-		left = FoldTurkishI(left);
-		right = FoldTurkishI(right);
+		left = FoldCaseOutliers(left);
+		right = FoldCaseOutliers(right);
 
 		return left == right
 			|| char.ToLowerInvariant(left) == char.ToLowerInvariant(right)
@@ -685,12 +685,123 @@ public static class Fuzzy
 	}
 
 	/// <summary>
-	/// Maps the Turkish dotted capital <c>İ</c> and dotless small <c>ı</c> to <c>i</c>, and leaves every other
+	/// Folds the letters that the invariant case mappings fail to pair with their other case, and leaves every other
 	/// character unchanged.
 	/// </summary>
 	/// <param name="c">The character to fold.</param>
-	/// <returns><c>i</c> for <c>İ</c> or <c>ı</c>; otherwise <paramref name="c"/>.</returns>
-	private static char FoldTurkishI(char c) => c is '\u0130' or '\u0131' ? 'i' : c;
+	/// <returns>The folded character.</returns>
+	/// <remarks>
+	/// The Turkish dotted capital <c>İ</c> and dotless small <c>ı</c> fold to <c>i</c>. The Greek theta symbol
+	/// <c>ϑ</c> uppercases to <c>Θ</c> and the capital theta symbol <c>ϴ</c> lowercases to <c>θ</c>, so each pairs
+	/// with <c>θ</c> but not with the other; both fold to <c>θ</c>.
+	/// </remarks>
+	private static char FoldCaseOutliers(char c) => c switch
+	{
+		'\u0130' or '\u0131' => 'i',
+		'\u03D1' or '\u03F4' => '\u03B8',
+		_ => c,
+	};
+
+	/// <summary>
+	/// Normalizes a span for comparison: <see cref="NormalizeForComparison(ReadOnlySpan{char})"/>, then
+	/// <see cref="SplitCaselessComposites(ReadOnlySpan{char})"/>.
+	/// </summary>
+	/// <param name="value">The span to prepare.</param>
+	/// <returns>The prepared text.</returns>
+	internal static ReadOnlySpan<char> PrepareForComparison(ReadOnlySpan<char> value) =>
+		SplitCaselessComposites(NormalizeForComparison(value));
+
+	/// <summary>
+	/// Splits each precomposed letter whose other case has no precomposed form into a cased letter and the
+	/// combining marks that follow it, so that it can match its other case.
+	/// </summary>
+	/// <param name="value">Text already normalized to <see cref="NormalizationForm.FormC"/>.</param>
+	/// <returns><paramref name="value"/> itself when it holds no such letter; otherwise the split text.</returns>
+	/// <remarks>
+	/// <c>ǰ</c> uppercases to <c>J</c> followed by a combining caron, which stays two codepoints in
+	/// <see cref="NormalizationForm.FormC"/>, so comparing one codepoint at a time can never pair it with <c>ǰ</c>.
+	/// Splitting <c>ǰ</c> into <c>j</c> and the caron lines both up. Each letter is split only as far as needed to
+	/// reach a letter that has a case partner: <c>ΐ</c> becomes <c>ϊ</c> and an acute, which matches
+	/// <c>Ϊ</c> followed by an acute.
+	/// </remarks>
+	internal static ReadOnlySpan<char> SplitCaselessComposites(ReadOnlySpan<char> value)
+	{
+		bool hasSplit = false;
+		foreach (char c in value)
+		{
+			if (CaselessCompositeSplit(c) is not null)
+			{
+				hasSplit = true;
+				break;
+			}
+		}
+
+		if (!hasSplit)
+		{
+			return value;
+		}
+
+		StringBuilder builder = new(value.Length + 8);
+		for (int i = 0; i < value.Length; i++)
+		{
+			string? split = CaselessCompositeSplit(value[i]);
+			if (split is null)
+			{
+				builder.Append(value[i]);
+			}
+			else
+			{
+				builder.Append(split);
+			}
+		}
+
+		return builder.ToString().AsSpan();
+	}
+
+	/// <summary>
+	/// Gets the split form of a precomposed letter whose other case has no precomposed form.
+	/// </summary>
+	/// <param name="c">The character to look up.</param>
+	/// <returns>The letter's split form, or <see langword="null"/> when it needs no split.</returns>
+	/// <remarks>
+	/// These are every Basic Multilingual Plane letter that is its own NFC form, decomposes, and has no simple
+	/// invariant case mapping, apart from <c>İ</c> (folded separately) and <c>ϓ</c> and <c>ϔ</c> (whose base letter
+	/// is caseless too). A test checks the table against that rule.
+	/// </remarks>
+	internal static string? CaselessCompositeSplit(char c) => c switch
+	{
+		'\u01F0' => "\u006A\u030C", // ǰ
+		'\u0390' => "\u03CA\u0301", // ΐ
+		'\u03B0' => "\u03CB\u0301", // ΰ
+		'\u1E96' => "\u0068\u0331", // ẖ
+		'\u1E97' => "\u0074\u0308", // ẗ
+		'\u1E98' => "\u0077\u030A", // ẘ
+		'\u1E99' => "\u0079\u030A", // ẙ
+		'\u1F50' => "\u03C5\u0313", // ὐ
+		'\u1F52' => "\u03C5\u0313\u0300", // ὒ
+		'\u1F54' => "\u03C5\u0313\u0301", // ὔ
+		'\u1F56' => "\u03C5\u0313\u0342", // ὖ
+		'\u1FB2' => "\u1F70\u0345", // ᾲ
+		'\u1FB4' => "\u03AC\u0345", // ᾴ
+		'\u1FB6' => "\u03B1\u0342", // ᾶ
+		'\u1FB7' => "\u03B1\u0342\u0345", // ᾷ
+		'\u1FC2' => "\u1F74\u0345", // ῂ
+		'\u1FC4' => "\u03AE\u0345", // ῄ
+		'\u1FC6' => "\u03B7\u0342", // ῆ
+		'\u1FC7' => "\u03B7\u0342\u0345", // ῇ
+		'\u1FD2' => "\u03CA\u0300", // ῒ
+		'\u1FD6' => "\u03B9\u0342", // ῖ
+		'\u1FD7' => "\u03CA\u0342", // ῗ
+		'\u1FE2' => "\u03CB\u0300", // ῢ
+		'\u1FE4' => "\u03C1\u0313", // ῤ
+		'\u1FE6' => "\u03C5\u0342", // ῦ
+		'\u1FE7' => "\u03CB\u0342", // ῧ
+		'\u1FF2' => "\u1F7C\u0345", // ῲ
+		'\u1FF4' => "\u03CE\u0345", // ῴ
+		'\u1FF6' => "\u03C9\u0342", // ῶ
+		'\u1FF7' => "\u03C9\u0342\u0345", // ῷ
+		_ => null,
+	};
 
 	/// <summary>
 	/// Normalizes a span to <see cref="NormalizationForm.FormC"/> so that canonically equivalent text compares equal.
