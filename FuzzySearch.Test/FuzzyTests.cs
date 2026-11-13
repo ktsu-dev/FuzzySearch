@@ -892,6 +892,50 @@ public class FuzzyTests
 	}
 
 	[TestMethod]
+	[DataRow("AQ\u0303qQ", "AQqQ", "q", DisplayName = "Mark between a capital and its doubled copy")]
+	[DataRow("Addres\u0303sSpace", "AddressSpace", "sp", DisplayName = "Mark inside the doubled s of Address")]
+	[DataRow("Addres\u0303Space", "AddresSpace", "sp", DisplayName = "Mark with no doubled letter")]
+	public void Contains_WithScore_CombiningMarkBetweenADoubledLetter_ScoresLikeWithoutTheMark(string subject, string unmarkedSubject, string pattern)
+	{
+		// Arrange
+		bool unmarked = Fuzzy.Contains(unmarkedSubject, pattern, out int unmarkedScore);
+
+		// Act
+		bool result = Fuzzy.Contains(subject, pattern, out int score);
+
+		// Assert
+		Assert.IsTrue(unmarked, "The unmarked subject should match.");
+		Assert.IsTrue(result, "The marked subject should match.");
+		Assert.AreEqual(unmarkedScore, score, "A mark between two copies of a letter must not stop the later copy taking the match (#142).");
+	}
+
+	[TestMethod]
+	public void Contains_InsertingANonComposingMarkAfterAnyLetter_NeverChangesTheResultOrScore()
+	{
+		// Arrange: U+0332 COMBINING LOW LINE has no precomposed form with any of these letters, so it survives
+		// normalization and must be skipped exactly as if it were absent.
+		const string alphabet = "abAB_x1";
+		const char mark = '\u0332';
+		Random random = new(142);
+
+		for (int i = 0; i < 20000; i++)
+		{
+			string subject = RandomString(random, alphabet, random.Next(1, 8));
+			string pattern = RandomString(random, alphabet, random.Next(1, 4));
+			int insertAt = random.Next(1, subject.Length + 1);
+			string marked = subject.Insert(insertAt, mark.ToString());
+
+			// Act
+			bool result = Fuzzy.Contains(subject, pattern, out int score);
+			bool markedResult = Fuzzy.Contains(marked, pattern, out int markedScore);
+
+			// Assert
+			Assert.AreEqual(result, markedResult, $"A mark after index {insertAt - 1} of \"{subject}\" changed the match of \"{pattern}\".");
+			Assert.AreEqual(score, markedScore, $"A mark after index {insertAt - 1} of \"{subject}\" changed the score of \"{pattern}\".");
+		}
+	}
+
+	[TestMethod]
 	[DataRow("q\u0303Bar", "q\u0303", true, DisplayName = "A mark the pattern asks for is matched")]
 	[DataRow("q\u0303Bar", "q\u0303b", true, DisplayName = "A matched mark, then the capital after it")]
 	[DataRow("qBar", "q\u0303", false, DisplayName = "A mark the subject lacks is not matched")]
