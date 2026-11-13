@@ -732,7 +732,8 @@ public static class Fuzzy
 	/// <returns><see langword="true"/> if the span holds such a code unit; otherwise <see langword="false"/>.</returns>
 	internal static bool HasUnnormalizableCodeUnit(ReadOnlySpan<char> value)
 	{
-		for (int i = 0; i < value.Length; i++)
+		int i = 0;
+		while (i < value.Length)
 		{
 			char c = value[i];
 			if (c == '\uFFFE')
@@ -740,18 +741,18 @@ public static class Fuzzy
 				return true;
 			}
 
-			if (!char.IsSurrogate(c))
-			{
-				continue;
-			}
-
 			if (char.IsHighSurrogate(c) && i + 1 < value.Length && char.IsLowSurrogate(value[i + 1]))
 			{
-				i++;
-				continue;
+				i += 2;
 			}
-
-			return true;
+			else if (char.IsSurrogate(c))
+			{
+				return true;
+			}
+			else
+			{
+				i++;
+			}
 		}
 
 		return false;
