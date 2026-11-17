@@ -674,6 +674,64 @@ public class FuzzyTests
 		Assert.AreEqual(PrecomposedCafe + "\uD800" + PrecomposedCafe + "\uD83D\uDE01", result);
 	}
 
+	// Lone surrogates cannot go in a DataRow: attribute metadata replaces them with U+FFFD. Index into this instead.
+	private static readonly (string Subject, string Pattern)[] UnnormalizableInputs =
+	[
+		("a\uD800b", "ab"),
+		("Caf\u00E9 menu\uFFFE", "cm"),
+		("Party \uD83C", "pa"),
+		("Caf\u00E9", "c\uDC00"),
+	];
+
+	[TestMethod]
+	[DataRow(0)]
+	[DataRow(1)]
+	[DataRow(2)]
+	[DataRow(3)]
+	public void Contains_TextThatCannotBeNormalized_RaisesNoException(int index)
+	{
+		(string subject, string pattern) = UnnormalizableInputs[index];
+
+		// Arrange: count exceptions thrown on this thread only, since other tests run in parallel.
+		int threadId = Environment.CurrentManagedThreadId;
+		int thrown = 0;
+		void OnFirstChance(object? sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
+		{
+			if (Environment.CurrentManagedThreadId == threadId)
+			{
+				Interlocked.Increment(ref thrown);
+			}
+		}
+
+		AppDomain.CurrentDomain.FirstChanceException += OnFirstChance;
+		try
+		{
+			// Act
+			Fuzzy.Contains(subject, pattern);
+			Fuzzy.Contains(subject, pattern, out _);
+		}
+		finally
+		{
+			AppDomain.CurrentDomain.FirstChanceException -= OnFirstChance;
+		}
+
+		// Assert
+		Assert.AreEqual(0, thrown, "Text with a lone surrogate or U+FFFE must go straight to run-wise normalization, not through a throw and catch.");
+	}
+
+	[TestMethod]
+	public void HasUnnormalizableCodeUnit_FindsLoneSurrogatesAndByteSwappedBom()
+	{
+		// Assert
+		Assert.IsFalse(Fuzzy.HasUnnormalizableCodeUnit(string.Empty));
+		Assert.IsFalse(Fuzzy.HasUnnormalizableCodeUnit("Caf\u00E9"));
+		Assert.IsFalse(Fuzzy.HasUnnormalizableCodeUnit("x\uD83D\uDE01y"), "A surrogate pair is well-formed.");
+		Assert.IsTrue(Fuzzy.HasUnnormalizableCodeUnit("a\uD800"), "Trailing lone high surrogate.");
+		Assert.IsTrue(Fuzzy.HasUnnormalizableCodeUnit("\uDC00a"), "Leading lone low surrogate.");
+		Assert.IsTrue(Fuzzy.HasUnnormalizableCodeUnit("\uDE01\uD83D"), "A pair in the wrong order.");
+		Assert.IsTrue(Fuzzy.HasUnnormalizableCodeUnit("a\uFFFE"), "A byte-swapped BOM.");
+	}
+
 	#endregion
 
 	#region Surrogate Pair Tests
