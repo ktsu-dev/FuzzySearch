@@ -676,6 +676,99 @@ public class FuzzyTests
 
 	#endregion
 
+	#region Case Pair Tests
+
+	[TestMethod]
+	[DataRow("\u03D1", "\u03F4")] // ϑ / ϴ
+	[DataRow("\u01F0", "J\u030C")] // ǰ / J̌
+	[DataRow("\u0390", "\u03AA\u0301")] // ΐ / Ϊ́
+	[DataRow("\u03B0", "\u03AB\u0301")] // ΰ / Ϋ́
+	[DataRow("\u1E96", "H\u0331")] // ẖ / H̱
+	[DataRow("\u1E97", "T\u0308")] // ẗ / T̈
+	[DataRow("\u1E98", "W\u030A")] // ẘ / W̊
+	[DataRow("\u1E99", "Y\u030A")] // ẙ / Y̊
+	[DataRow("\u1F50", "\u03A5\u0313")] // ὐ / Υ̓
+	[DataRow("\u1F52", "\u03A5\u0313\u0300")] // ὒ / Υ̓̀
+	[DataRow("\u1F54", "\u03A5\u0313\u0301")] // ὔ / Υ̓́
+	[DataRow("\u1F56", "\u03A5\u0313\u0342")] // ὖ / Υ̓͂
+	public void Contains_LettersThatDifferOnlyInCase_Match(string lower, string upper)
+	{
+		// Act
+		bool upperInLower = Fuzzy.Contains(lower, upper);
+		bool lowerInUpper = Fuzzy.Contains(upper, lower);
+		bool upperInLowerScored = Fuzzy.Contains("x" + lower + "y", upper, out _);
+		bool lowerInUpperScored = Fuzzy.Contains("x" + upper + "y", lower, out _);
+
+		// Assert
+		Assert.IsTrue(upperInLower, "The uppercase form should match the lowercase subject.");
+		Assert.IsTrue(lowerInUpper, "The lowercase form should match the uppercase subject.");
+		Assert.IsTrue(upperInLowerScored, "The scoring overload should agree for the lowercase subject.");
+		Assert.IsTrue(lowerInUpperScored, "The scoring overload should agree for the uppercase subject.");
+	}
+
+	[TestMethod]
+	public void Contains_SplitLetter_StillNeedsItsMarks()
+	{
+		// Act: splitting ǰ into j and a caron must not let a bare j or a different mark match it.
+		bool bareLetterInSplit = Fuzzy.Contains("\u01F0", "J");
+		bool otherMark = Fuzzy.Contains("\u01F0", "J\u0301");
+
+		// Assert
+		Assert.IsTrue(bareLetterInSplit, "A pattern can stop before the mark, like any fuzzy prefix.");
+		Assert.IsFalse(otherMark, "A different combining mark must not match the caron.");
+	}
+
+	[TestMethod]
+	public void CaselessCompositeSplit_CoversEveryLetterWhoseOtherCaseIsNotPrecomposed()
+	{
+		static bool HasCasePartner(char c) => char.ToLowerInvariant(c) != c || char.ToUpperInvariant(c) != c;
+
+		List<string> missing = [];
+		for (int code = 0; code <= 0xFFFF; code++)
+		{
+			char c = (char)code;
+			if (char.IsSurrogate(c) || c == '\u0130')
+			{
+				continue;
+			}
+
+			System.Globalization.UnicodeCategory category = char.GetUnicodeCategory(c);
+			if (category is not (System.Globalization.UnicodeCategory.LowercaseLetter
+				or System.Globalization.UnicodeCategory.UppercaseLetter
+				or System.Globalization.UnicodeCategory.TitlecaseLetter))
+			{
+				continue;
+			}
+
+			string text = c.ToString();
+			string decomposed = text.Normalize(System.Text.NormalizationForm.FormD);
+			if (text.Normalize(System.Text.NormalizationForm.FormC) != text || decomposed.Length < 2 || HasCasePartner(c))
+			{
+				continue;
+			}
+
+			string? expected = null;
+			for (int end = decomposed.Length - 1; end >= 1; end--)
+			{
+				string head = decomposed[..end].Normalize(System.Text.NormalizationForm.FormC);
+				if (head.Length == 1 && HasCasePartner(head[0]))
+				{
+					expected = head + decomposed[end..];
+					break;
+				}
+			}
+
+			if (Fuzzy.CaselessCompositeSplit(c) != expected)
+			{
+				missing.Add($"U+{code:X4}");
+			}
+		}
+
+		Assert.IsEmpty(missing, "Table disagrees with the rule for: " + string.Join(", ", missing));
+	}
+
+	#endregion
+
 	#region Surrogate Pair Tests
 
 	// U+1F601 GRINNING FACE WITH SMILING EYES, a supplementary-plane character stored as the
